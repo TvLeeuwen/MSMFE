@@ -14,7 +14,7 @@ from src.bone_muscle_extractor import extract_muscle_and_bone
 # Defs ------------------------------------------------------------------------
 
 # MSM -------------------------------------------------------------------------
-def run_moco(moco_path, osim_path, mat_path, output_path):
+def run_moco(moco_path, osim_path, kine_path, output_path):
     if st.button("Track kinematics"):
         try:
             os.chdir(output_path)
@@ -24,7 +24,7 @@ def run_moco(moco_path, osim_path, mat_path, output_path):
             }
 
             st.session_state.kinematics_path = generate_sto(
-                Path(mat_path),
+                Path(kine_path),
                 model_file=Path(osim_path),
             )
             st.session_state.kinematics_path = os.path.join(

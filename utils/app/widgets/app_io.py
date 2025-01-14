@@ -30,8 +30,8 @@ def setup_paths():
             ".osim",
         )
 
-    if "mat_path" not in st.session_state:
-        st.session_state.mat_path = find_file_in_dir(
+    if "kine_path" not in st.session_state:
+        st.session_state.kine_path = find_file_in_dir(
             st.session_state.output_path,
             ".mat",
         )
@@ -115,16 +115,16 @@ def osim_uploader():
         )
 
 
-def mat_uploader():
-    mat_path = st.file_uploader("Drag and drop you .mat data file here", type=[".mat"])
-    if mat_path is not None:
-        st.session_state.mat_path = write_to_output(
-            mat_path, st.session_state.output_path, "MSM",
+def kine_uploader():
+    kine_path = st.file_uploader("Drag and drop you .mat data file here", type=[".mat"])
+    if kine_path is not None:
+        st.session_state.kine_path = write_to_output(
+            kine_path, st.session_state.output_path, "MSM",
         )
 
-    if st.session_state.mat_path is not None and os.path.exists(
-        st.session_state.mat_path
+    if st.session_state.kine_path is not None and os.path.exists(
+        st.session_state.kine_path
     ):
         with st.expander("Show .mat keyvalues", expanded=False):
-            df = read_mat_to_df(st.session_state.mat_path)
+            df = read_mat_to_df(st.session_state.kine_path)
             st.write([col[:-3] for col in df if col.endswith("Ang")])

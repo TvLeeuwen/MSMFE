@@ -1,7 +1,7 @@
 # Imports ---------------------------------------------------------------------
 import os
 import streamlit as st
-from app.widgets.app_io import osim_uploader, mat_uploader
+from app.widgets.app_io import osim_uploader, kine_uploader
 from app.widgets.app_functions import (
     run_moco,
     force_vector_extraction,
@@ -20,7 +20,7 @@ def page_home():
     st.write(f"Home directory: {st.session_state.app_path}")
 
     osim_uploader()
-    mat_uploader()
+    kine_uploader()
 
     st.write(st.session_state)
 
@@ -31,14 +31,14 @@ def page_track_kinematics():
     # Run Moco ----------------------------------------------------------------
     if (
         st.session_state.osim_path is not None
-        and st.session_state.mat_path is not None
+        and st.session_state.kine_path is not None
         and os.path.exists(st.session_state.osim_path)
-        and os.path.exists(st.session_state.mat_path)
+        and os.path.exists(st.session_state.kine_path)
     ):
         run_moco(
             st.session_state.app_path,
             st.session_state.osim_path,
-            st.session_state.mat_path,
+            st.session_state.kine_path,
             st.session_state.output_path,
         )
     else:

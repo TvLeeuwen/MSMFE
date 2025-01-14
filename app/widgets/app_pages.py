@@ -1,11 +1,18 @@
 # Imports ---------------------------------------------------------------------
 import os
 import streamlit as st
-from app.widgets.app_io import osim_uploader, mat_uploader
+from app.widgets.app_io import (
+    osim_uploader,
+    kine_uploader,
+    geom_uploader,
+    find_file_in_dir,
+    dir_downloader,
+)
 from app.widgets.app_functions import (
-    run_moco,
+    track_kinematics,
     force_vector_extraction,
     bone_muscle_extraction,
+    clear_output,
 )
 from app.widgets.app_visuals import (
     visual_compare_timeseries,
@@ -20,7 +27,8 @@ def page_home():
     st.write(f"Home directory: {st.session_state.app_path}")
 
     osim_uploader()
-    mat_uploader()
+    geom_uploader()
+    kine_uploader()
 
     st.write(st.session_state)
 
@@ -28,25 +36,28 @@ def page_home():
 def page_track_kinematics():
     st.title("Kinematic tracking")
 
-    # Run Moco ----------------------------------------------------------------
     if (
         st.session_state.osim_path is not None
-        and st.session_state.mat_path is not None
+        and st.session_state.kine_path is not None
         and os.path.exists(st.session_state.osim_path)
-        and os.path.exists(st.session_state.mat_path)
+        and os.path.exists(st.session_state.kine_path)
     ):
-        run_moco(
-            st.session_state.app_path,
-            st.session_state.osim_path,
-            st.session_state.mat_path,
-            st.session_state.output_path,
-        )
+        with st.spinner("Tracking kinematics..."):
+            track_kinematics(
+                st.session_state.app_path,
+                st.session_state.osim_path,
+                st.session_state.kine_path,
+                st.session_state.output_path,
+            )
     else:
         st.write("No files uploaded yet. Please upload under :rainbow[input]")
 
     # Compare kinematics ------------------------------------------------------
-    if st.session_state.moco_solution_path is not None and os.path.exists(
-        st.session_state.moco_solution_path
+    if (
+        st.session_state.kinematics_path is not None
+        and os.path.exists(st.session_state.kinematics_path)
+        and st.session_state.moco_solution_path is not None
+        and os.path.exists(st.session_state.moco_solution_path)
     ):
         st.subheader("Kinematics: Validate output versus input")
 
@@ -87,30 +98,52 @@ def page_force_vector():
             index=None,
         )
         st.write("Selected:", boi)
+        st.session_state.boi_path = os.path.join(
+            st.session_state.example_path, f"Geometry/{boi}.vtp"
+        )
+
+        if "force_origins_path" not in st.session_state:
+            st.session_state.force_origins_path = find_file_in_dir(
+                st.session_state.output_path,
+                f"{boi}_muscle_origins.json",
+            )
+        if "force_vectors_path" not in st.session_state:
+            st.session_state.force_vectors_path = find_file_in_dir(
+                st.session_state.output_path,
+                f"{boi}_muscle_vectors.json",
+            )
 
     if (
         st.session_state.osim_path is not None
         and st.session_state.moco_solution_path is not None
+        and boi is not None
     ):
         force_vector_extraction(
             st.session_state.osim_path,
             st.session_state.moco_solution_path,
+            boi,
             st.session_state.output_path,
         )
+    elif boi is None:
+        pass
     else:
-        st.write("No dynamics detected. Run :rainbow[Track Kinematics] \
+        st.write(
+            "No dynamics detected. Run :rainbow[Track Kinematics] \
                 before extracting force vectors"
         )
+
+    st.write(st.session_state.moco_solution_path)
 
     if (
         st.session_state.force_origins_path is not None
         and st.session_state.force_vectors_path is not None
         and os.path.exists(st.session_state.force_origins_path)
         and os.path.exists(st.session_state.force_vectors_path)
+        and boi is not None
     ):
         if st.button("Generate gif"):
             visual_force_vector_gif(
-                os.path.join(st.session_state.example_path, "Geometry/tmet.vtp"),
+                st.session_state.boi_path,
                 st.session_state.moco_solution_path,
                 st.session_state.force_origins_path,
                 st.session_state.force_vectors_path,
@@ -155,14 +188,16 @@ def page_output():
                     data=file_data,
                     file_name=file_name,
                 )
+        [
+            dir_downloader(os.path.join(st.session_state.output_path, dir), dir)
+            for dir in os.listdir(st.session_state.output_path)
+            if os.path.isdir(os.path.join(st.session_state.output_path, dir))
+        ]
 
         st.subheader("Clear output")
         if st.button("Clear all output"):
-            for file in os.listdir(st.session_state.output_path):
-                file_path = os.path.join(st.session_state.output_path, file)
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-            st.session_state.moco_solution_path = None
+            clear_output()
             st.rerun()
+
     else:
         st.write("Output folder is empty")

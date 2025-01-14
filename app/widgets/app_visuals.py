@@ -8,6 +8,7 @@ import streamlit as st
 import plotly.colors as pc
 import plotly.graph_objects as go
 
+from pathlib import Path
 from src.sto_generator import read_input
 from utils.generate_force_vector_gif import generate_vector_gif
 
@@ -72,10 +73,8 @@ def visual_validate_muscle_parameters(sto1):
     color_scale_df = pc.get_colorscale("Viridis")
     fig = go.Figure()
     for i, column in enumerate(df.columns):
-        if (
-            column != "time"
-        ):
-            state_name = column.split('|')[1]
+        if column != "time":
+            state_name = column.split("|")[1]
             fig.add_trace(
                 go.Scatter(
                     x=df.index,
@@ -117,8 +116,9 @@ def visual_force_vector_gif(
     force_vectors_path,
     output_path,
 ):
-    # TODO - change to model_solution_vectors.gif
-    st.session_state.gif_path = os.path.join(output_path, "force_vectors.gif")
+    st.session_state.gif_path = os.path.join(
+        output_path, f"{Path(moco_solution_path).stem}_vectors.gif"
+    )
 
     # TODO - make geom dynamic: mesh file
     process = multiprocessing.Process(

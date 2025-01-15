@@ -1,6 +1,6 @@
 # Imports ---------------------------------------------------------------------
-from app.widgets.app_io import setup_paths
-from app.widgets.app_setup import setup_app
+from src.app.app_io import setup_paths
+from src.app.app_setup import setup_app
 
 # Main ------------------------------------------------------------------------
 if __name__ == '__main__':

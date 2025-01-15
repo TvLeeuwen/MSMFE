@@ -1,20 +1,20 @@
 # Imports ---------------------------------------------------------------------
 import os
 import streamlit as st
-from app.widgets.app_io import (
+from src.app.app_io import (
     osim_uploader,
     kine_uploader,
     geom_uploader,
     find_file_in_dir,
     dir_downloader,
 )
-from app.widgets.app_functions import (
+from src.app.app_functions import (
     track_kinematics,
     force_vector_extraction,
     bone_muscle_extraction,
     clear_output,
 )
-from app.widgets.app_visuals import (
+from src.app.app_visuals import (
     visual_compare_timeseries,
     visual_validate_muscle_parameters,
     visual_force_vector_gif,

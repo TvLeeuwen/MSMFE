@@ -1,5 +1,5 @@
 import os
-from app.widgets.app_pages import *
+from src.app.app_pages import *
 
 
 def setup_app():

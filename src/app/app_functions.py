@@ -12,7 +12,7 @@ from src.force_vector_extractor import extract_force_vectors, extract_model_bone
 
 
 # Defs ------------------------------------------------------------------------
-def run_moco(moco_path, osim_path, kine_path, output_path):
+def run_moco(moco_path, osim_path, output_path):
     try:
         os.chdir(output_path)
         filter_params = {
@@ -20,20 +20,14 @@ def run_moco(moco_path, osim_path, kine_path, output_path):
             "invert_filter": False,
         }
 
-        st.session_state.kinematics_path = generate_sto(
-            Path(kine_path),
-            model_file=Path(osim_path),
-        )
-        st.session_state.kinematics_path = os.path.join(
-            output_path, str(st.session_state.kinematics_path)
-        )
+        print(osim_path)
+        print(st.session_state.kinematics_path)
 
         solution_path, muscle_fiber_path = moco_track_states(
             Path(osim_path),
             Path(st.session_state.kinematics_path),
             filter_params,
         )
-
         os.chdir(moco_path)
 
         st.session_state.moco_solution_path = os.path.join(
@@ -49,17 +43,25 @@ def run_moco(moco_path, osim_path, kine_path, output_path):
         os.chdir(moco_path)
 
 
-def track_kinematics(moco_path, osim_path, kine_path, output_path):
-    if st.button("Track kinematics"):
+def generate_kinematics(osim_path, kine_path, output_path):
+        kinematics_path = generate_sto(
+            Path(kine_path),
+            model_file=Path(osim_path),
+        )
+        st.session_state.kinematics_path = os.path.join(
+            output_path, str(kinematics_path)
+        )
+        st.success("Kinematics successfully generated!")
+
+
+def track_kinematics(moco_path, osim_path, output_path):
         st.write("Tracking kinematics...")
-        with st.spinner("Tracking kinematics"):
-            run_moco(
-                moco_path,
-                osim_path,
-                kine_path,
-                output_path,
-            )
-            st.success("Tracking succesful!")
+        run_moco(
+            moco_path,
+            osim_path,
+            output_path,
+        )
+        st.success("Tracking succesful!")
 
 
 def bone_muscle_extraction(model):
@@ -88,19 +90,22 @@ def clear_session_state():
             continue
         else:
             del st.session_state[key]
+    st.rerun()
 
 
-def clear_output():
+def clear_output(filetype="all"):
     for file in os.listdir(st.session_state.output_path):
         file_path = os.path.join(st.session_state.output_path, file)
-        if os.path.isfile(file_path):
-            try:
-                os.unlink(file_path)
-            except Exception as e:
-                print(f"Error while removing file: {e}")
-        elif os.path.isdir(file_path):
-            try:
-                shutil.rmtree(file_path)
-            except Exception as e:
-                print(f"Error while removing directory: {e}")
+        if filetype == "all" or filetype == "files":
+            if os.path.isfile(file_path):
+                try:
+                    os.unlink(file_path)
+                except Exception as e:
+                    print(f"Error while removing file: {e}")
+        elif filetype == "all" or filetype == "dirs":
+            if os.path.isdir(file_path):
+                try:
+                    shutil.rmtree(file_path)
+                except Exception as e:
+                    print(f"Error while removing directory: {e}")
     clear_session_state()

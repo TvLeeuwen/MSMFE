@@ -5,10 +5,10 @@ from src.app.app_io import (
     osim_uploader,
     kine_uploader,
     geom_uploader,
-    find_file_in_dir,
     dir_downloader,
 )
 from src.app.app_functions import (
+    generate_kinematics,
     track_kinematics,
     force_vector_extraction,
     bone_muscle_extraction,
@@ -42,13 +42,25 @@ def page_track_kinematics():
         and os.path.exists(st.session_state.osim_path)
         and os.path.exists(st.session_state.kine_path)
     ):
-        with st.spinner("Tracking kinematics..."):
-            track_kinematics(
-                st.session_state.app_path,
+        if st.button("Generate kinematics"):
+            generate_kinematics(
                 st.session_state.osim_path,
                 st.session_state.kine_path,
                 st.session_state.output_path,
             )
+
+        if (
+        st.session_state.kinematics_path is not None
+        and os.path.exists(st.session_state.kinematics_path)
+        ):
+
+            if st.button("Track kinematics"):
+                track_kinematics(
+                    st.session_state.app_path,
+                    st.session_state.osim_path,
+                    st.session_state.output_path,
+                )
+
     else:
         st.write("No files uploaded yet. Please upload under :rainbow[input]")
 
@@ -84,13 +96,8 @@ def page_force_vector():
         st.session_state.osim_path
     ):
         st.write(f"Model selected: {os.path.basename(st.session_state.osim_path)}")
-    else:
-        st.write("No files uploaded yet. Please upload under :rainbow[input]")
 
     # Bone selector -----------------------------------------------------------
-    if st.session_state.osim_path is not None and os.path.exists(
-        st.session_state.osim_path
-    ):
         bones = bone_muscle_extraction(st.session_state.osim_path)
         boi = st.radio(
             "Bone of interest:",
@@ -102,16 +109,9 @@ def page_force_vector():
             st.session_state.example_path, f"Geometry/{boi}.vtp"
         )
 
-        if "force_origins_path" not in st.session_state:
-            st.session_state.force_origins_path = find_file_in_dir(
-                st.session_state.output_path,
-                f"{boi}_muscle_origins.json",
-            )
-        if "force_vectors_path" not in st.session_state:
-            st.session_state.force_vectors_path = find_file_in_dir(
-                st.session_state.output_path,
-                f"{boi}_muscle_vectors.json",
-            )
+
+    else:
+        st.write("No files uploaded yet. Please upload under :rainbow[input]")
 
     if (
         st.session_state.osim_path is not None
@@ -124,15 +124,11 @@ def page_force_vector():
             boi,
             st.session_state.output_path,
         )
-    elif boi is None:
-        pass
     else:
         st.write(
             "No dynamics detected. Run :rainbow[Track Kinematics] \
                 before extracting force vectors"
         )
-
-    st.write(st.session_state.moco_solution_path)
 
     if (
         st.session_state.force_origins_path is not None
@@ -177,7 +173,17 @@ def page_output():
     ]
 
     if output_files:
+        st.subheader("Clear output")
+        if st.button("Clear all output"):
+            clear_output("all")
+            st.rerun()
+        st.divider()
+
         st.subheader("Files")
+        if st.button("Clear files"):
+            clear_output("files")
+        st.divider()
+
         for file_name in output_files:
             with open(
                 os.path.join(st.session_state.output_path, file_name), "rb"
@@ -188,16 +194,16 @@ def page_output():
                     data=file_data,
                     file_name=file_name,
                 )
+        st.subheader("Folders")
+        if st.button("Clear folders"):
+            clear_output("dirs")
+        st.divider()
+
         [
             dir_downloader(os.path.join(st.session_state.output_path, dir), dir)
             for dir in os.listdir(st.session_state.output_path)
             if os.path.isdir(os.path.join(st.session_state.output_path, dir))
         ]
-
-        st.subheader("Clear output")
-        if st.button("Clear all output"):
-            clear_output()
-            st.rerun()
 
     else:
         st.write("Output folder is empty")

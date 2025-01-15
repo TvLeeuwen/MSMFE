@@ -135,29 +135,6 @@ def read_input(input_file, model_file=None):
                 df = df.rename(columns={f"{joint}Angvel": f"/jointset/{joint}/{state}/speed"})
                 df = df.rename(columns={f"{joint}Angacc": f"/jointset/{joint}/{state}/accel"})
 
-        # df[
-        #     [
-        #         "/jointset/knee/ground_to_tibia_tx/value",
-        #         "/jointset/knee/ground_to_tibia_ty/value",
-        #     ]
-        # ] = pd.DataFrame(df["tibiaCOM"].tolist(), index=df.index)
-        # df[
-        #     [
-        #         "/jointset/knee/ground_to_tibia_tx/speed",
-        #         "/jointset/knee/ground_to_tibia_ty/speed",
-        #     ]
-        # ] = pd.DataFrame(df["tibiaCOMvel"].tolist(), index=df.index)
-        # df[
-        #     [
-        #         "/jointset/knee/ground_to_tibia_tx/accel",
-        #         "/jointset/knee/ground_to_tibia_ty/accel",
-        #     ]
-        # ] = pd.DataFrame(df["tibiaCOMacc"].tolist(), index=df.index)
-    else:
-        sys.exit(
-            f"Error: Input format ({input_file.suffix}) not supported. Must be .sto or .mat. Exiting"
-        )
-
     return df, header
 
 
@@ -233,11 +210,10 @@ def generate_sto(
     returns: `output_file`: Path to generated .sto
     """
     print("-- Generating kinematics .sto")
-    print(output_file)
     output_file = (
-        model_file.with_name(model_file.stem + "_moco_track_kinematic_states.sto")
+        model_file.with_name(model_file.stem + "_tracked_states.sto")
         if output_file is None and model_file is not None
-        else Path(input_file.stem + "_moco_track_states.sto")
+        else Path(input_file.stem + "_tracked_states.sto")
         if output_file is None and model_file is None and input_file is not None
         else output_file
     )

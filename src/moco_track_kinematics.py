@@ -131,7 +131,7 @@ def moco_track_states(
     input_sto_file = (
         Path(input_sto_file.name)
         if input_sto_file
-        else Path(str(model_file.with_suffix("")) + "_moco_track_states.sto")
+        else Path(str(model_file.with_suffix("")) + "_tracked_states.sto")
     )
     output_file = (
         Path(output_file)

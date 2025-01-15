@@ -40,7 +40,7 @@ def setup_paths():
     if "kinematics_path" not in st.session_state:
         st.session_state.kinematics_path = find_file_in_dir(
             st.session_state.output_path,
-            "moco_track_kinematic_states.sto",
+            "tracked_states.sto",
         )
 
     if "moco_solution_path" not in st.session_state:
@@ -55,17 +55,17 @@ def setup_paths():
             "muscle_fiber_data.sto",
         )
 
-    # if "force_origins_path" not in st.session_state:
-    #     st.session_state.force_origins_path = find_file_in_dir(
-    #         st.session_state.output_path,
-    #         "muscle_origins.json",
-    #     )
-    #
-    # if "force_vectors_path" not in st.session_state:
-    #     st.session_state.force_vectors_path = find_file_in_dir(
-    #         st.session_state.output_path,
-    #         "muscle_vectors.json",
-    #     )
+    if "force_origins_path" not in st.session_state:
+        st.session_state.force_origins_path = find_file_in_dir(
+            st.session_state.output_path,
+            "muscle_origins.json",
+        )
+
+    if "force_vectors_path" not in st.session_state:
+        st.session_state.force_vectors_path = find_file_in_dir(
+            st.session_state.output_path,
+            "muscle_vectors.json",
+        )
 
     if "gif_path" not in st.session_state:
         st.session_state.gif_path = find_file_in_dir(

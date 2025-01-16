@@ -53,7 +53,6 @@ def page_track_kinematics():
         st.session_state.kinematics_path is not None
         and os.path.exists(st.session_state.kinematics_path)
         ):
-
             if st.button("Track kinematics"):
                 track_kinematics(
                     st.session_state.app_path,

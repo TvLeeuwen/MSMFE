@@ -2,10 +2,9 @@
 
 # Imports ---------------------------------------------------------------------
 import os
-from posix import write
 import streamlit as st
 
-from src.sto_generator import read_mat_to_df
+from src.MSM.sto_generator import read_mat_to_df
 
 
 # Defs ------------------------------------------------------------------------

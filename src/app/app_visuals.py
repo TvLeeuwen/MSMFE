@@ -9,7 +9,7 @@ import plotly.colors as pc
 import plotly.graph_objects as go
 
 from pathlib import Path
-from src.sto_generator import read_input
+from src.MSM.sto_generator import read_input
 from utils.generate_force_vector_gif import generate_vector_gif
 
 

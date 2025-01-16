@@ -153,6 +153,17 @@ def extract_model_bones(model_path):
     model = osim.Model(model_path)
     model.initSystem()
 
-    body_muscle_map = [body.getName() for body in model.getBodySet()]
+    bodies_with_muscles = set()
 
-    return body_muscle_map
+    for i in range(model.getMuscles().getSize()):
+
+        muscle = model.getMuscles().get(i)
+        origin_body = muscle.getGeometryPath().getPathPointSet().get(0).getBodyName()
+        insertion_body = muscle.getGeometryPath().getPathPointSet().get(muscle.getGeometryPath().getPathPointSet().getSize() - 1).getBodyName()
+
+        bodies_with_muscles.add(origin_body)
+        bodies_with_muscles.add(insertion_body)
+
+    bodies_with_muscles = list(bodies_with_muscles)
+
+    return bodies_with_muscles

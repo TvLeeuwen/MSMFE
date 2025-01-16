@@ -6,9 +6,9 @@ import shutil
 import streamlit as st
 from pathlib import Path
 
-from src.sto_generator import generate_sto
-from src.moco_track_kinematics import moco_track_states
-from src.force_vector_extractor import extract_force_vectors, extract_model_bones
+from src.MSM.sto_generator import generate_sto
+from src.MSM.moco_track_kinematics import moco_track_states
+from src.MSM.force_vector_extractor import extract_force_vectors, extract_model_bones
 
 
 # Defs ------------------------------------------------------------------------

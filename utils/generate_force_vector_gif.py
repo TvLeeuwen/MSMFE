@@ -4,7 +4,7 @@ import pandas as pd
 import pyvista as pv
 import matplotlib.pyplot as plt
 
-from src.sto_generator import read_input
+from src.MSM.sto_generator import read_input
 
 
 def generate_vector_gif(

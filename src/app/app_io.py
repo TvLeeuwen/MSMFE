@@ -30,6 +30,12 @@ def setup_paths():
             ".osim",
         )
 
+    if "geom_path" not in st.session_state:
+        st.session_state.geom_path = find_file_in_dir(
+            st.session_state.output_path,
+            "Geometry",
+        )
+
     if "kine_path" not in st.session_state:
         st.session_state.kine_path = find_file_in_dir(
             st.session_state.output_path,
@@ -129,7 +135,10 @@ def geom_uploader():
         st.session_state.geom_path = os.path.join(
             st.session_state.output_path, "Geometry"
         )
-        if not os.path.exists(st.session_state.geom_path):
+        if (
+            not os.path.exists(st.session_state.geom_path) 
+            and len(geom_path) != 0
+        ):
             os.mkdir(st.session_state.geom_path)
         if os.path.exists(st.session_state.geom_path):
             for geom_ref in geom_path:

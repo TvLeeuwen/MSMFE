@@ -19,7 +19,6 @@ def extract_force_vectors(osim_path, sto_path, boi, output_path):
     force_origins = {}
     force_directions = {"time": []}
 
-    # muscles = [muscle for muscle in model.getMuscles()]
     muscles = model.getMuscles()
 
     for muscle in muscles:
@@ -28,8 +27,8 @@ def extract_force_vectors(osim_path, sto_path, boi, output_path):
             point = path_points.get(i)
             if point.getBodyName() in boi:
                 if i == 0 or i == path_points.getSize() - 1:
-                    force_origins[point.getName()] = []
-                    force_directions[point.getName()] = []
+                    force_origins[muscle.getName()] = []
+                    force_directions[muscle.getName()] = []
                 else:
                     continue
 
@@ -64,22 +63,19 @@ def extract_force_vectors(osim_path, sto_path, boi, output_path):
             geom_path.updateGeometry(state)
             geom_path.getPointForceDirections(state, point_force_directions)
 
-            # Extract data for all muscle attachment sites
-            for attachment in force_origins:
-                # Check if attachment is present in the current muscle
-                if any(
-                    point.getName() in attachment
-                    for point in muscle.getGeometryPath().getPathPointSet()
-                ):
-                    # Check if attachment is origin or insertion
-                    if attachment[-1] == 1:
+            path_points = geom_path.getPathPointSet()
+            for i in range(path_points.getSize()):
+                point = path_points.get(i)
+                if point.getBodyName() in boi:
+                    if i == 0:
                         insertion_index = 0
                         other_index = 1
-                    else:
+                    elif i == path_points.getSize() - 1:
                         insertion_index = point_force_directions.getSize() - 1
                         other_index = insertion_index - 1
+                    else:
+                        continue
 
-                    # Get via points and calculate vector
                     pfd = point_force_directions.get(insertion_index)
                     pfd2 = point_force_directions.get(other_index)
 
@@ -108,21 +104,20 @@ def extract_force_vectors(osim_path, sto_path, boi, output_path):
                     normalized_vector = insertion_vector / np.linalg.norm(
                         insertion_vector
                     )
-
                     normalized_vector = osim.Vec3(normalized_vector)
                     transform = model.getGround().findTransformBetween(
                         state, pfd.frame()
                     )
                     rotated_vector = transform.R().multiply(normalized_vector)
 
-                    force_origins[attachment].append(
+                    force_origins[muscle.getName()].append(
                         [
                             pfd.point()[0],
                             pfd.point()[1],
                             pfd.point()[2],
                         ]
                     )
-                    force_directions[attachment].append(
+                    force_directions[muscle.getName()].append(
                         [
                             math.degrees(rotated_vector[0]),
                             math.degrees(rotated_vector[1]),
@@ -130,7 +125,6 @@ def extract_force_vectors(osim_path, sto_path, boi, output_path):
                         ]
                     )
 
-    # Save to json
     force_origin_paths = os.path.join(
         output_path, f"{Path(sto_path).stem}_{boi}_muscle_origins.json"
     )
@@ -149,17 +143,20 @@ def extract_force_vectors(osim_path, sto_path, boi, output_path):
 
 
 def extract_model_bones(model_path):
-
     model = osim.Model(model_path)
     model.initSystem()
 
     bodies_with_muscles = set()
 
     for i in range(model.getMuscles().getSize()):
-
         muscle = model.getMuscles().get(i)
         origin_body = muscle.getGeometryPath().getPathPointSet().get(0).getBodyName()
-        insertion_body = muscle.getGeometryPath().getPathPointSet().get(muscle.getGeometryPath().getPathPointSet().getSize() - 1).getBodyName()
+        insertion_body = (
+            muscle.getGeometryPath()
+            .getPathPointSet()
+            .get(muscle.getGeometryPath().getPathPointSet().getSize() - 1)
+            .getBodyName()
+        )
 
         bodies_with_muscles.add(origin_body)
         bodies_with_muscles.add(insertion_body)

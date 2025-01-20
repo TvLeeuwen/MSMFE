@@ -30,8 +30,9 @@ def page_home():
     geom_uploader()
     kine_uploader()
 
-    st.write(st.session_state)
 
+    with st.expander("Debug: Show states", expanded=False):
+        st.write(st.session_state)
 
 def page_track_kinematics():
     st.title("Kinematic tracking")
@@ -42,6 +43,7 @@ def page_track_kinematics():
         and os.path.exists(st.session_state.osim_path)
         and os.path.exists(st.session_state.kine_path)
     ):
+        st.write(f"Model: {os.path.basename(st.session_state.osim_path)}")
         if st.button("Generate kinematics"):
             generate_kinematics(
                 st.session_state.osim_path,
@@ -49,9 +51,8 @@ def page_track_kinematics():
                 st.session_state.output_path,
             )
 
-        if (
-        st.session_state.kinematics_path is not None
-        and os.path.exists(st.session_state.kinematics_path)
+        if st.session_state.kinematics_path is not None and os.path.exists(
+            st.session_state.kinematics_path
         ):
             if st.button("Track kinematics"):
                 track_kinematics(
@@ -96,18 +97,24 @@ def page_force_vector():
     ):
         st.write(f"Model selected: {os.path.basename(st.session_state.osim_path)}")
 
-    # Bone selector -----------------------------------------------------------
+        # Bone selector -----------------------------------------------------------
         bones = bone_muscle_extraction(st.session_state.osim_path)
         boi = st.radio(
             "Bone of interest:",
             [bone for bone in bones],
             index=None,
         )
-        st.write("Selected:", boi)
-        st.session_state.boi_path = os.path.join(
-            st.session_state.example_path, f"Geometry/{boi}.vtp"
-        )
 
+        if boi:
+            for dirpath, _, files in os.walk(st.session_state.output_path):
+                for file in files:
+                    if boi in file:
+                        if ".gif" in file:
+                            st.session_state.gif_path = os.path.join(dirpath, file)
+                        elif "origins.json" in file:
+                            st.session_state.force_origins_path = os.path.join(dirpath, file)
+                        elif "vectors.json" in file:
+                            st.session_state.force_vectors_path = os.path.join(dirpath, file)
 
     else:
         st.write("No files uploaded yet. Please upload under :rainbow[input]")
@@ -136,17 +143,44 @@ def page_force_vector():
         and os.path.exists(st.session_state.force_vectors_path)
         and boi is not None
     ):
-        if st.button("Generate gif"):
-            visual_force_vector_gif(
-                st.session_state.boi_path,
-                st.session_state.moco_solution_path,
-                st.session_state.force_origins_path,
-                st.session_state.force_vectors_path,
-                st.session_state.output_path,
+        if st.session_state.geom_path is not None and os.path.exists(
+            st.session_state.geom_path
+        ):
+            for _, _, bones in os.walk(st.session_state.geom_path):
+                for bone in bones:
+                    if boi in bone:
+                        st.session_state.boi_path = os.path.join(
+                            st.session_state.geom_path,
+                            bone,
+                        )
+
+            # Generate gif ----------------------------------------------------
+            if st.button("Generate gif"):
+                visual_force_vector_gif(
+                    st.session_state.boi_path,
+                    st.session_state.moco_solution_path,
+                    st.session_state.force_origins_path,
+                    st.session_state.force_vectors_path,
+                    st.session_state.output_path,
+                )
+        else:
+            st.write(
+                "No geometry files uploaded yet. Please upload under :rainbow[input]"
             )
 
-    if st.session_state.gif_path is not None and os.path.isfile(
-        st.session_state.gif_path,
+        if st.button("Series"):
+            import pandas as pd
+
+            force_vectors = pd.read_json(
+                st.session_state.force_vectors_path, orient="records", lines=True
+            )
+            print(force_vectors)
+
+    if (
+        st.session_state.gif_path is not None
+        and os.path.exists(st.session_state.gif_path)
+        and boi is not None
+        and boi in st.session_state.gif_path
     ):
         st.image(
             st.session_state.gif_path,

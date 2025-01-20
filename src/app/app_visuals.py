@@ -117,10 +117,9 @@ def visual_force_vector_gif(
     output_path,
 ):
     st.session_state.gif_path = os.path.join(
-        output_path, f"{Path(moco_solution_path).stem}_vectors.gif"
+        output_path, f"{Path(force_vectors_path).stem}.gif"
     )
 
-    # TODO - make geom dynamic: mesh file
     process = multiprocessing.Process(
         target=generate_vector_gif,
         args=(
@@ -136,3 +135,4 @@ def visual_force_vector_gif(
         while process.is_alive():
             time.sleep(0.1)
     process.join()
+

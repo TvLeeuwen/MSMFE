@@ -79,7 +79,7 @@ def parse_arguments():
 # Defs ------------------------------------------------------------------------
 def read_mat_to_df(input_file):
     data = read_mat(input_file)
-    # print(data.keys())
+
     return pd.DataFrame(data["WeightedToes"])
 
 
@@ -103,10 +103,9 @@ def read_input(input_file, model_file=None):
         df = pd.read_csv(input_file, sep="\t", skiprows=len(header))
     elif input_file.suffix == ".mat":
 
-        df = read_mat_to_df(input_file)
+        df2 = read_mat_to_df(input_file)
 
-        # states = jointset, forceset/activation, forceset/normalized_tendon_force
-        # controls = forceset/muscles
+        print(df2.columns)
 
         # Set basic header
         header.append("inDegrees=no\n")
@@ -123,17 +122,17 @@ def read_input(input_file, model_file=None):
         header.append("endheader\n")
 
         framerate = 100
-        df = df.rename(columns={"FrameNumber": "time"})
-        df["time"] = df["time"] / framerate
+        df = pd.DataFrame(0, index=range(len(df2["FrameNumber"])), columns=["time"])
+        df["time"] = df2["FrameNumber"] / framerate
 
         joint_states = parse_model_for_joints(model_file)
         for joint in joint_states:
             print(f"- {joint}")
             for state in joint_states[joint]:
                 print(f"-- {state}")
-                df = df.rename(columns={f"{joint}Ang": f"/jointset/{joint}/{state}/value"})
-                df = df.rename(columns={f"{joint}Angvel": f"/jointset/{joint}/{state}/speed"})
-                df = df.rename(columns={f"{joint}Angacc": f"/jointset/{joint}/{state}/accel"})
+                df[f"/jointset/{joint}/{state}/value"] = df2[f"{joint}Ang"]
+                df[f"/jointset/{joint}/{state}/speed"] = df2[f"{joint}Angvel"]
+                df[f"/jointset/{joint}/{state}/accel"] = df2[f"{joint}Angacc"]
 
     return df, header
 
@@ -178,7 +177,7 @@ def generate_df_from_model(model_file, df):
 
     # Hardcoded kinematics filter
     for state in states:
-        if "jointset" in state:
+        if "jointset" in state and "flexion" in state:
             print(f" - Writing state: {state}")
             df2[state] = df[state]
 

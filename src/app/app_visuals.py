@@ -18,20 +18,23 @@ def visual_compare_timeseries(sto1, sto2):
     df, _ = read_input(sto1)
     df2, _ = read_input(sto2)
 
-    color_scale_df = pc.get_colorscale("Viridis")
     fig = go.Figure()
-    for i, column in enumerate(df.columns):
+
+    color_scale = [hex[1] for hex in pc.get_colorscale("Viridis")]
+
+    for column in df.columns:
         if column != "time":
             fig.add_trace(
                 go.Scatter(
                     x=df.index,
                     y=df[column],
                     mode="lines",
-                    line=dict(color=color_scale_df[i % len(color_scale_df)][1]),
+                    line=dict(color=color_scale[2]),
                     name=f"Input: {column}",
                     legendgroup=column,
                 )
             )
+
     for column in df2.columns:
         if column != "time":
             fig.add_trace(
@@ -39,6 +42,7 @@ def visual_compare_timeseries(sto1, sto2):
                     x=df2.index,
                     y=df2[column],
                     mode="lines",
+                    line=dict(color=color_scale[-3]),
                     name=f"Output: {column}",
                     legendgroup=column,
                 )
@@ -70,19 +74,27 @@ def visual_compare_timeseries(sto1, sto2):
 def visual_validate_muscle_parameters(sto1):
     df, _ = read_input(sto1)
 
-    color_scale_df = pc.get_colorscale("Viridis")
+    color_scale = [hex[1] for hex in pc.get_colorscale("Viridis")]
+    print(len(color_scale))
+
+    # Required for a consistent color index
+    columns = set()
+    for column in df.columns:
+        if column != "time":
+            columns.add(column.split("|")[0])
+
     fig = go.Figure()
-    for i, column in enumerate(df.columns):
+    for column in df.columns:
         if column != "time":
             state_name = column.split("|")[1]
+            color_index = int([c for c, col in enumerate(columns) if col in column.split("|")][0]*3)
             fig.add_trace(
                 go.Scatter(
                     x=df.index,
                     y=df[column],
                     mode="lines",
-                    line=dict(color=color_scale_df[i % len(color_scale_df)][1]),
+                    line=dict(color=color_scale[color_index % len(color_scale)]),
                     name=column,
-                    # legendgroup=column,
                     legendgroup=state_name,
                 )
             )

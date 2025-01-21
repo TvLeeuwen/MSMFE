@@ -7,7 +7,7 @@ def setup_app():
         "MSM": [
             st.Page(page_home, title="Input"),
             st.Page(page_track_kinematics, title="Track kinematics"),
-            st.Page(page_force_vector, title="Force vectors"),
+            st.Page(page_force_vector, title="Muscle forces"),
         ],
         "FE": [
             st.Page(page_FE, title="Finite Element"),

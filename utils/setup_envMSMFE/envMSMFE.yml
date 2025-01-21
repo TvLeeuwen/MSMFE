@@ -1,5 +1,0 @@
-name: envMSMFE
-channels:
-  - opensim-org
-dependencies:
-  - opensim

@@ -1,17 +1,17 @@
 # Imports ---------------------------------------------------------------------
-import os, sys
+import os
+import sys
 import argparse
-from pathlib import Path
-import pandas as pd
 import numpy as np
+import pandas as pd
+from pathlib import Path
 from pymatreader import read_mat
 import plotly.graph_objects as go
 
-from utils.filters import filter_states, filter_states_visualization
-from utils.osim_model_parser import parse_model_for_states
-from utils.md_logger import log_md
-from utils.osim_model_parser import parse_model_for_joints
+from src.MSM.filters import filter_states, filter_states_visualization
+from src.MSM.osim_model_parser import parse_model_for_states, parse_model_for_joints
 
+from utils.md_logger import log_md
 try:
     from utils.get_paths import md_log_file
 except ImportError:

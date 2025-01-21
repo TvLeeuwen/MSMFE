@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 
 from pathlib import Path
 from src.MSM.sto_generator import read_input
-from utils.generate_force_vector_gif import generate_vector_gif
+from src.MSM.generate_force_vector_gif import generate_vector_gif
 
 
 # Defs ------------------------------------------------------------------------

@@ -168,11 +168,12 @@ def kine_uploader():
             st.write([col[:-3] for col in df if col.endswith("Ang")])
 
 
-def dir_downloader(dir, dir_name):
+def dir_downloader(dir, dir_name, show_files=False):
     st.download_button(
         label=dir_name,
         data=dir,
         file_name=dir_name,
         mime="application/zip",
     )
-    st.write([file for file in os.listdir(dir)])
+    if show_files:
+        st.write([file for file in os.listdir(dir)])

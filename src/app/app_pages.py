@@ -206,7 +206,10 @@ def page_output():
     ]
 
     if output_files:
-        st.subheader("Clear output")
+
+        # Download output
+        dir_downloader(st.session_state.output_path, "Output")
+
         if st.button("Clear all output"):
             clear_output("all")
             st.rerun()
@@ -233,7 +236,7 @@ def page_output():
         st.divider()
 
         [
-            dir_downloader(os.path.join(st.session_state.output_path, dir), dir)
+            dir_downloader(os.path.join(st.session_state.output_path, dir), dir, show_files=True)
             for dir in os.listdir(st.session_state.output_path)
             if os.path.isdir(os.path.join(st.session_state.output_path, dir))
         ]

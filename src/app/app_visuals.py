@@ -6,6 +6,7 @@ import time
 import multiprocessing
 import streamlit as st
 import plotly.colors as pc
+import plotly.express as px
 import plotly.graph_objects as go
 
 from pathlib import Path
@@ -74,26 +75,25 @@ def visual_compare_timeseries(sto1, sto2):
 def visual_validate_muscle_parameters(sto1):
     df, _ = read_input(sto1)
 
-    color_scale = [hex[1] for hex in pc.get_colorscale("Viridis")]
-    print(len(color_scale))
-
     # Required for a consistent color index
     columns = set()
     for column in df.columns:
         if column != "time":
             columns.add(column.split("|")[0])
+    colors = px.colors.sample_colorscale("viridis", [n/(len(columns)-1) for n in range(len(columns))])
+    color_map = {col: colors[i] for i, col in enumerate(columns)}
 
     fig = go.Figure()
     for column in df.columns:
         if column != "time":
             state_name = column.split("|")[1]
-            color_index = int([c for c, col in enumerate(columns) if col in column.split("|")][0]*3)
+            muscle = column.split("|")[0]
             fig.add_trace(
                 go.Scatter(
                     x=df.index,
                     y=df[column],
                     mode="lines",
-                    line=dict(color=color_scale[color_index % len(color_scale)]),
+                    line=dict(color=color_map[muscle]),
                     name=column,
                     legendgroup=state_name,
                 )

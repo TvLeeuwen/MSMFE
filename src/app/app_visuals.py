@@ -15,7 +15,7 @@ from src.MSM.generate_force_vector_gif import generate_vector_gif
 
 
 # Defs ------------------------------------------------------------------------
-def visual_compare_timeseries(sto1, sto2):
+def visual_compare_timeseries(sto1, sto2, group_legend):
     df, _ = read_input(sto1)
     df2, _ = read_input(sto2)
 
@@ -25,6 +25,7 @@ def visual_compare_timeseries(sto1, sto2):
 
     for column in df.columns:
         if column != "time":
+            legend = column if group_legend else f"Input: {column}"
             fig.add_trace(
                 go.Scatter(
                     x=df.index,
@@ -32,12 +33,13 @@ def visual_compare_timeseries(sto1, sto2):
                     mode="lines",
                     line=dict(color=color_scale[2]),
                     name=f"Input: {column}",
-                    legendgroup=column,
+                    legendgroup=legend,
                 )
             )
 
     for column in df2.columns:
         if column != "time":
+            legend = column if group_legend else f"Output: {column}"
             fig.add_trace(
                 go.Scatter(
                     x=df2.index,
@@ -45,7 +47,7 @@ def visual_compare_timeseries(sto1, sto2):
                     mode="lines",
                     line=dict(color=color_scale[-3]),
                     name=f"Output: {column}",
-                    legendgroup=column,
+                    legendgroup=legend,
                 )
             )
 
@@ -57,7 +59,7 @@ def visual_compare_timeseries(sto1, sto2):
         legend_title="Variables",
         hovermode="x unified",
         legend=dict(
-            orientation="h",
+            orientation="v",
             yanchor="top",
             y=-0.1,
             xanchor="right",
@@ -72,7 +74,7 @@ def visual_compare_timeseries(sto1, sto2):
     )
 
 
-def visual_validate_muscle_parameters(sto1):
+def visual_validate_muscle_parameters(sto1, group_legend):
     df, _ = read_input(sto1)
 
     # Required for a consistent color index
@@ -86,7 +88,7 @@ def visual_validate_muscle_parameters(sto1):
     fig = go.Figure()
     for column in df.columns:
         if column != "time":
-            state_name = column.split("|")[1]
+            state_name = column.split("|")[1] if group_legend else column
             muscle = column.split("|")[0]
             fig.add_trace(
                 go.Scatter(
@@ -106,7 +108,7 @@ def visual_validate_muscle_parameters(sto1):
         legend_title="Variables",
         hovermode="x unified",
         legend=dict(
-            orientation="h",
+            orientation="v",
             yanchor="top",
             y=-0.1,
             xanchor="right",

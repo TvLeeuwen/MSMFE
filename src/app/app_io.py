@@ -2,6 +2,8 @@
 
 # Imports ---------------------------------------------------------------------
 import os
+import io
+import zipfile
 import streamlit as st
 
 from src.MSM.sto_generator import read_mat_to_df
@@ -135,10 +137,7 @@ def geom_uploader():
         st.session_state.geom_path = os.path.join(
             st.session_state.output_path, "Geometry"
         )
-        if (
-            not os.path.exists(st.session_state.geom_path) 
-            and len(geom_path) != 0
-        ):
+        if not os.path.exists(st.session_state.geom_path) and len(geom_path) != 0:
             os.mkdir(st.session_state.geom_path)
         if os.path.exists(st.session_state.geom_path):
             for geom_ref in geom_path:
@@ -168,12 +167,29 @@ def kine_uploader():
             st.write([col[:-3] for col in df if col.endswith("Ang")])
 
 
+def zip_directory(folder_path):
+    """Compress an entire directory into a ZIP file in memory."""
+    buffer = io.BytesIO()  # Create a buffer to hold the ZIP file
+    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                # Add file to the ZIP archive with a relative path
+                arcname = os.path.relpath(file_path, start=folder_path)
+                zip_file.write(file_path, arcname=arcname)
+    buffer.seek(0)  # Move to the start of the buffer
+    return buffer.getvalue()
+
+
 def dir_downloader(dir, dir_name, show_files=False):
-    st.download_button(
-        label=dir_name,
-        data=dir,
-        file_name=dir_name,
-        mime="application/zip",
-    )
-    if show_files:
-        st.write([file for file in os.listdir(dir)])
+    if os.path.exists(dir):
+        st.download_button(
+            label=f"Download {dir_name}.zip",
+            data=zip_directory(dir),
+            file_name="dir_name.zip",
+            mime="application/zip"
+        )
+        if show_files:
+            st.write([file for file in os.listdir(dir)])
+    else:
+        st.error("The specified folder does not exist. Please check the path.")

@@ -73,9 +73,11 @@ def page_track_kinematics():
     ):
         st.subheader("Kinematics: Validate output versus input")
 
+        group_kine = st.toggle("Group kinematics legend", value=True)
         visual_compare_timeseries(
             st.session_state.kinematics_path,
             st.session_state.moco_solution_path,
+            group_kine,
         )
 
     # Validate muscle parameters ----------------------------------------------
@@ -84,8 +86,10 @@ def page_track_kinematics():
     ):
         st.subheader("Dynamics: Muscle fiber parameters")
 
+        group_legend = st.toggle("Group dynamics legend", value=True)
         visual_validate_muscle_parameters(
             st.session_state.moco_solution_muscle_fiber_path,
+            group_legend,
         )
 
 
@@ -207,18 +211,16 @@ def page_output():
 
     if output_files:
 
-        # Download output
         dir_downloader(st.session_state.output_path, "Output")
 
         if st.button("Clear all output"):
             clear_output("all")
             st.rerun()
-        st.divider()
 
         st.subheader("Files")
         if st.button("Clear files"):
             clear_output("files")
-        st.divider()
+        st.subheader("Download files")
 
         for file_name in output_files:
             with open(
@@ -230,10 +232,15 @@ def page_output():
                     data=file_data,
                     file_name=file_name,
                 )
+        st.subheader("Remove files", divider="red")
+        for file_name in output_files:
+            if st.button(f"Remove {file_name}"):
+                clear_output("file", file_name)
+
+
         st.subheader("Folders")
         if st.button("Clear folders"):
             clear_output("dirs")
-        st.divider()
 
         [
             dir_downloader(os.path.join(st.session_state.output_path, dir), dir, show_files=True)

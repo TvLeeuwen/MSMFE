@@ -93,16 +93,22 @@ def clear_session_state():
     st.rerun()
 
 
-def clear_output(filetype="all"):
+def clear_output(file_type="all", file_name=None):
     for file in os.listdir(st.session_state.output_path):
         file_path = os.path.join(st.session_state.output_path, file)
-        if filetype == "all" or filetype == "files":
+        if file_type == "all" or file_type == "files":
             if os.path.isfile(file_path):
                 try:
                     os.unlink(file_path)
                 except Exception as e:
                     print(f"Error while removing file: {e}")
-        elif filetype == "all" or filetype == "dirs":
+        elif file_type == "file" and file_name is not None:
+            if os.path.isfile(file_path) and file == file_name:
+                try:
+                    os.unlink(file_path)
+                except Exception as e:
+                    print(f"Error while removing file: {e}")
+        elif file_type == "all" or file_type == "dirs":
             if os.path.isdir(file_path):
                 try:
                     shutil.rmtree(file_path)

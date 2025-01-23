@@ -142,25 +142,31 @@ def extract_force_vectors(osim_path, sto_path, boi, output_path):
     return force_origin_paths, force_vector_paths
 
 
-def extract_model_bones(model_path):
+def extract_model_bone_and_muscle(model_path):
     model = osim.Model(model_path)
     model.initSystem()
 
-    bodies_with_muscles = set()
+    body_to_muscles = {}
 
+    # Iterate through all muscles in the model
     for i in range(model.getMuscles().getSize()):
         muscle = model.getMuscles().get(i)
+        muscle_name = muscle.getName()
+        
+        # Get the origin and insertion body names
         origin_body = muscle.getGeometryPath().getPathPointSet().get(0).getBodyName()
-        insertion_body = (
-            muscle.getGeometryPath()
-            .getPathPointSet()
-            .get(muscle.getGeometryPath().getPathPointSet().getSize() - 1)
-            .getBodyName()
-        )
+        insertion_body = muscle.getGeometryPath().getPathPointSet().get(
+            muscle.getGeometryPath().getPathPointSet().getSize() - 1
+        ).getBodyName()
 
-        bodies_with_muscles.add(origin_body)
-        bodies_with_muscles.add(insertion_body)
+        # Add the muscle to the origin body
+        if origin_body not in body_to_muscles:
+            body_to_muscles[origin_body] = []
+        body_to_muscles[origin_body].append(muscle_name)
 
-    bodies_with_muscles = list(bodies_with_muscles)
+        # Add the muscle to the insertion body
+        if insertion_body not in body_to_muscles:
+            body_to_muscles[insertion_body] = []
+        body_to_muscles[insertion_body].append(muscle_name)
 
-    return bodies_with_muscles
+    return body_to_muscles

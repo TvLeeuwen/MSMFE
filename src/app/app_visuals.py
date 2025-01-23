@@ -4,17 +4,41 @@
 import os
 import time
 import multiprocessing
+import pyvista as pv
 import streamlit as st
 import plotly.colors as pc
 import plotly.express as px
 import plotly.graph_objects as go
+from streamlit_plotly_events import plotly_events
 
 from pathlib import Path
 from src.MSM.sto_generator import read_input
-from src.MSM.generate_force_vector_gif import generate_vector_gif
+from src.MSM.generate_force_vector_gif import (
+    generate_vector_gif,
+    generate_force_vectors,
+)
 
 
 # Defs ------------------------------------------------------------------------
+def update_fig_layout(fig):
+    fig.update_layout(
+        height=1000,
+        xaxis_title="Time (s)",
+        yaxis_title="Value",
+        legend_title="Variables",
+        hovermode="x unified",
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=-0.1,
+            xanchor="right",
+            x=0.5,
+            itemsizing="constant",
+            traceorder="grouped",
+        ),
+    )
+
+
 def visual_compare_timeseries(sto1, sto2, group_legend):
     df, _ = read_input(sto1)
     df2, _ = read_input(sto2)
@@ -51,30 +75,15 @@ def visual_compare_timeseries(sto1, sto2, group_legend):
                 )
             )
 
-    fig.update_layout(
-        # title=f"{os.path.basename(sto1)}\n versus\n{os.path.basename(sto2)}",
-        height=1000,
-        xaxis_title="Time (s)",
-        yaxis_title="Value",
-        legend_title="Variables",
-        hovermode="x unified",
-        legend=dict(
-            orientation="v",
-            yanchor="top",
-            y=-0.1,
-            xanchor="right",
-            x=0.5,
-            itemsizing="constant",
-            traceorder="grouped",
-        ),
-    )
+    update_fig_layout(fig)
+
     st.plotly_chart(
         fig,
         use_container_width=True,
     )
 
 
-def visual_validate_muscle_parameters(sto1, group_legend):
+def visual_muscle_data(sto1, group_legend=False):
     df, _ = read_input(sto1)
 
     # Required for a consistent color index
@@ -82,7 +91,9 @@ def visual_validate_muscle_parameters(sto1, group_legend):
     for column in df.columns:
         if column != "time":
             columns.add(column.split("|")[0])
-    colors = px.colors.sample_colorscale("viridis", [n/(len(columns)-1) for n in range(len(columns))])
+    colors = px.colors.sample_colorscale(
+        "viridis", [n / (len(columns) - 1) for n in range(len(columns))]
+    )
     color_map = {col: colors[i] for i, col in enumerate(columns)}
 
     fig = go.Figure()
@@ -100,23 +111,8 @@ def visual_validate_muscle_parameters(sto1, group_legend):
                     legendgroup=state_name,
                 )
             )
+    update_fig_layout(fig)
 
-    fig.update_layout(
-        height=1000,
-        xaxis_title="Time (s)",
-        yaxis_title="Value",
-        legend_title="Variables",
-        hovermode="x unified",
-        legend=dict(
-            orientation="v",
-            yanchor="top",
-            y=-0.1,
-            xanchor="right",
-            x=0.5,
-            itemsizing="constant",
-            traceorder="grouped",
-        ),
-    )
     st.plotly_chart(
         fig,
         use_container_width=True,
@@ -125,7 +121,7 @@ def visual_validate_muscle_parameters(sto1, group_legend):
 
 def visual_force_vector_gif(
     mesh_file,
-    moco_solution_path,
+    muscle_force_path,
     force_origins_path,
     force_vectors_path,
     output_path,
@@ -138,7 +134,7 @@ def visual_force_vector_gif(
         target=generate_vector_gif,
         args=(
             mesh_file,
-            moco_solution_path,
+            muscle_force_path,
             force_origins_path,
             force_vectors_path,
             st.session_state.gif_path,
@@ -150,3 +146,96 @@ def visual_force_vector_gif(
             time.sleep(0.1)
     process.join()
 
+
+def visual_toi_selector(
+    df,
+    group_legend=False,
+):
+    columns = set()
+    for column in df.columns:
+        if column != "time":
+            columns.add(column.split("|")[0])
+    colors = px.colors.sample_colorscale(
+        "viridis", [n / (len(columns) - 1) for n in range(len(columns))]
+    )
+    color_map = {col: colors[i] for i, col in enumerate(columns)}
+
+    fig = go.Figure()
+    fig.add_vline(
+        x=st.session_state.toi,
+        line_width=3,
+        line_dash="dash",
+        line_color="white",
+    )
+    for column in df.columns:
+        if column != "time":
+            state_name = column.split("|")[1] if group_legend else column
+            muscle = column.split("|")[0]
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df[column],
+                    mode="lines",
+                    line=dict(color=color_map[muscle]),
+                    name=muscle.split("/")[2],
+                    legendgroup=state_name,
+                )
+            )
+    # update_fig_layout(fig)
+    fig.update_layout(
+        {
+            "title": "Click to select a timestep of interest",
+            "title_font_color": "white",
+            "paper_bgcolor": "rgba(0, 0, 0, 0)",
+            "plot_bgcolor": "rgba(0, 0, 0, 0)",
+            "legend_font_color": "white",
+            "legend_title": "Muscle",
+            "legend_title_font_color": "white",
+        }
+    )
+    fig.update_xaxes(
+        {
+            "color": "white",
+            "showgrid": False,
+            "ticks": "outside",
+            "title": "timestep",
+        }
+    )
+    fig.update_yaxes(
+        {
+            "color": "white",
+            "gridcolor": "grey",
+            "ticks": "outside",
+            "title": "Force",
+        }
+    )
+
+    return fig
+
+
+def click_visual_toi_selector(df):
+    fig = visual_toi_selector(df)
+    selected_points = plotly_events(
+        fig, click_event=True, hover_event=False, select_event=False
+    )
+    if selected_points:
+        st.session_state.toi = selected_points[0]["x"]
+        st.rerun()
+
+
+def visual_toi_boi_force_vectors(
+    mesh_path,
+    muscle_force_path,
+    force_origins_path,
+    force_vectors_path,
+    step,
+    scale_factor,
+):
+    generate_force_vectors(
+        mesh_path,
+        muscle_force_path,
+        force_origins_path,
+        force_vectors_path,
+        step,
+        scale_factor,
+    )

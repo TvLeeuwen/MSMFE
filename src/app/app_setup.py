@@ -10,6 +10,7 @@ def setup_app():
             st.Page(page_force_vector, title="Muscle forces"),
         ],
         "FE": [
+            st.Page(page_BCs, title="Boundary conditions"),
             st.Page(page_FE, title="Finite Element"),
         ],
         "Output": [

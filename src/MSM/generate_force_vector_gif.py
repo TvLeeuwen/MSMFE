@@ -88,7 +88,6 @@ def generate_force_vectors(
     force_origins_path,
     force_vectors_path,
     step,
-    # scale_factor,
 ):
     mesh = pv.read(os.path.join(mesh_path))
     df, _ = read_input(muscle_force_path)

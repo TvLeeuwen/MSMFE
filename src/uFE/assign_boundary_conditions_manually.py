@@ -13,15 +13,14 @@ Select the location of both Dirichlet and Neumann boundary conditions manually b
 """
 
 ### Imports --------------------------------------------------------------------
-import sys
+import os
 import argparse
 from pathlib import Path
 import pyvista as pv
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
-from utils.handle_args import ask_user_to_continue
-from utils.formatting import timer, print_section
+from src.uFE.utils.handle_args import ask_user_to_continue
+from src.uFE.utils.formatting import timer, print_section
 
 
 ### Defs -----------------------------------------------------------------------
@@ -173,11 +172,17 @@ def assign_bcs_manually(input_file: Path, surf_select=False, txt=False) -> None:
     :(optional) file `input_file_neumann_BC.txt` list of selected nodes where force is applied
     """
     print_section()
+
     print(
-        f"-- Manual boundary condition picker initiated - loading file:\n - {input_file.name}"
+        f"-- Manual boundary condition picker initiated - loading file:\n - {input_file}"
     )
+    # if os.path.splitext(input_file)[1] != ".mesh":
+    #     print("-- Not a mesh file")
+    #     mesh = meshio.read(input_file)
+    #     meshio.write(output_file, mesh)
 
     with input_file.open("r"):
+
         mesh = pv.read(input_file)
 
     mesh = handle_args_surf_select(mesh, surf_select)

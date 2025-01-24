@@ -228,7 +228,6 @@ def visual_toi_boi_force_vectors(
     force_origins_path,
     force_vectors_path,
     step,
-    # scale_factor,
 ):
     generate_force_vectors(
         mesh_path,
@@ -236,5 +235,4 @@ def visual_toi_boi_force_vectors(
         force_origins_path,
         force_vectors_path,
         step,
-        # scale_factor,
     )

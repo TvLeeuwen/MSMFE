@@ -22,6 +22,7 @@ from src.app.app_visuals import (
     visual_force_vector_gif,
     visual_toi_boi_force_vectors,
 )
+from src.uFE.assign_boundary_conditions_manually import assign_bcs_manually
 
 sts = st.session_state
 
@@ -155,7 +156,7 @@ def page_force_vector():
         and os.path.exists(sts.force_origins_path)
         and os.path.exists(sts.force_vectors_path)
         and sts.boi is not None
-        and sts.geom_path is not None 
+        and sts.geom_path is not None
         and os.path.exists(sts.geom_path)
     ):
         for _, _, bones in os.walk(sts.geom_path):
@@ -197,7 +198,7 @@ def page_BCs():
 
     select_BC_toggle = st.toggle("OpenSim derived BC selection", value=True)
     if select_BC_toggle:
-        if sts.boi:
+        if sts.boi is not None:
             st.subheader(f"Select time of interest - {sts.boi}")
             muscles = [muscle for muscle in sts.bones_muscle_map[sts.boi]]
 
@@ -206,21 +207,24 @@ def page_BCs():
                 muscles,
             )
             st.write(f"Selected time: {st.session_state.toi}")
+        else:
+            st.write(f"Please select a bone of interest under :rainbow[Muscle forces]")
 
         if sts.toi:
-            # scale_factor = st.slider("Force scalar", 0.01, 1.)*0.1
             with st.empty():
                 visual_toi_boi_force_vectors(
-                        sts.boi_path,
-                        sts.moco_solution_muscle_fiber_path,
-                        sts.force_origins_path,
-                        sts.force_vectors_path,
-                        sts.toi,
-                        # scale_factor,
+                    sts.boi_path,
+                    sts.moco_solution_muscle_fiber_path,
+                    sts.force_origins_path,
+                    sts.force_vectors_path,
+                    sts.toi,
                 )
 
     else:
         st.subheader("Manual BC selection")
+
+        st.write("Coming soon!")
+        # assign_bcs_manually(sts.boi_path)
 
 
 def page_FE():

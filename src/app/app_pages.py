@@ -1,6 +1,5 @@
 # Imports ---------------------------------------------------------------------
 import os
-import time
 import streamlit as st
 from src.app.app_io import (
     project_uploader,
@@ -156,15 +155,16 @@ def page_force_vector():
         and os.path.exists(sts.force_origins_path)
         and os.path.exists(sts.force_vectors_path)
         and sts.boi is not None
+        and sts.geom_path is not None 
+        and os.path.exists(sts.geom_path)
     ):
-        if sts.geom_path is not None and os.path.exists(sts.geom_path):
-            for _, _, bones in os.walk(sts.geom_path):
-                for bone in bones:
-                    if sts.boi in bone:
-                        sts.boi_path = os.path.join(
-                            sts.geom_path,
-                            bone,
-                        )
+        for _, _, bones in os.walk(sts.geom_path):
+            for bone in bones:
+                if sts.boi in bone:
+                    sts.boi_path = os.path.join(
+                        sts.geom_path,
+                        bone,
+                    )
 
             # Generate gif ----------------------------------------------------
             if st.button(f"Generate {sts.boi} gif"):
@@ -207,22 +207,17 @@ def page_BCs():
             )
             st.write(f"Selected time: {st.session_state.toi}")
 
-        # TODO: fix this
         if sts.toi:
-            scale_factor = st.slider("Force scalar", 0.01, 1.)
-            visual_toi_boi_force_vectors(
-                    sts.boi_path,
-                    sts.moco_solution_muscle_fiber_path,
-                    sts.force_origins_path,
-                    sts.force_vectors_path,
-                    sts.toi,
-                    scale_factor,
-            )
-
-        else:
-            st.write(
-                "No bone of interest selected, please do so under :rainbow[Muscle forces]"
-            )
+            # scale_factor = st.slider("Force scalar", 0.01, 1.)*0.1
+            with st.empty():
+                visual_toi_boi_force_vectors(
+                        sts.boi_path,
+                        sts.moco_solution_muscle_fiber_path,
+                        sts.force_origins_path,
+                        sts.force_vectors_path,
+                        sts.toi,
+                        # scale_factor,
+                )
 
     else:
         st.subheader("Manual BC selection")

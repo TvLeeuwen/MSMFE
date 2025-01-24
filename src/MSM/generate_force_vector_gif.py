@@ -1,7 +1,10 @@
 import os
+import re
 import numpy as np
 import pandas as pd
 import pyvista as pv
+import streamlit as st
+import plotly.express as px
 from stpyvista import stpyvista
 import matplotlib.pyplot as plt
 
@@ -64,10 +67,13 @@ def generate_vector_gif(
             pl.remove_actor(text)
             text = pl.add_text(f"Step: {step}, time={time:.2f}", color="white")
             for muscle in muscle_names:
-                force_vector_actor[muscle].scale = df[
-                    # f"/forceset/{muscle}/normalized_tendon_force"
-                    f"/forceset/{muscle}|active_fiber_force"
-                ][step]*scale_factor
+                force_vector_actor[muscle].scale = (
+                    df[
+                        # f"/forceset/{muscle}/normalized_tendon_force"
+                        f"/forceset/{muscle}|active_fiber_force"
+                    ][step]
+                    * scale_factor
+                )
                 force_vector_actor[muscle].position = force_origins[muscle][step]
                 force_vector_actor[muscle].orientation = force_vectors[muscle][step]
             pl.write_frame()
@@ -82,7 +88,7 @@ def generate_force_vectors(
     force_origins_path,
     force_vectors_path,
     step,
-    scale_factor,
+    # scale_factor,
 ):
     mesh = pv.read(os.path.join(mesh_path))
     df, _ = read_input(muscle_force_path)
@@ -100,17 +106,20 @@ def generate_force_vectors(
     pl.add_mesh(mesh, color="white")
 
     muscle_names = [name for name in force_vectors.keys() if name != "time"]
-    colors = plt.cm.gist_rainbow(np.linspace(0, 1, len(muscle_names)))
 
     force_vector_actor = {}
-    legend = []
-    for muscle, color in zip(muscle_names, colors):
-        rgb_color = color[:3]
+
+    scale_factor = 0.01
+    for muscle in muscle_names:
+        for map in st.session_state.color_map:
+            if muscle in map:
+                rgb_color = st.session_state.color_map[map]
+        color = [int(color) for color in re.findall(r'\d+', rgb_color)]
 
         pl.add_mesh(
             pv.PolyData(force_origins[muscle][step]),
-            color=rgb_color,
-            point_size=20,
+            color=color,
+            point_size=10,
             render_points_as_spheres=True,
         )
         force_vector_actor[muscle] = pl.add_mesh(
@@ -119,9 +128,6 @@ def generate_force_vectors(
                 direction=force_vectors[muscle][step],
                 scale=df[f"/forceset/{muscle}|active_fiber_force"][step] * scale_factor,
             ),
-            color=rgb_color,
+            color=color,
         )
-        legend.append([muscle, rgb_color])
-    pl.add_legend(legend)
-
     stpyvista(pl, key="toiboi")

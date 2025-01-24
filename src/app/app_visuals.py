@@ -4,7 +4,6 @@
 import os
 import time
 import multiprocessing
-import pyvista as pv
 import streamlit as st
 import plotly.colors as pc
 import plotly.express as px
@@ -158,7 +157,7 @@ def visual_toi_selector(
     colors = px.colors.sample_colorscale(
         "viridis", [n / (len(columns) - 1) for n in range(len(columns))]
     )
-    color_map = {col: colors[i] for i, col in enumerate(columns)}
+    st.session_state.color_map = {col: colors[i] for i, col in enumerate(columns)}
 
     fig = go.Figure()
     fig.add_vline(
@@ -176,7 +175,7 @@ def visual_toi_selector(
                     x=df.index,
                     y=df[column],
                     mode="lines",
-                    line=dict(color=color_map[muscle]),
+                    line=dict(color=st.session_state.color_map[muscle]),
                     name=muscle.split("/")[2],
                     legendgroup=state_name,
                 )
@@ -229,7 +228,7 @@ def visual_toi_boi_force_vectors(
     force_origins_path,
     force_vectors_path,
     step,
-    scale_factor,
+    # scale_factor,
 ):
     generate_force_vectors(
         mesh_path,
@@ -237,5 +236,5 @@ def visual_toi_boi_force_vectors(
         force_origins_path,
         force_vectors_path,
         step,
-        scale_factor,
+        # scale_factor,
     )

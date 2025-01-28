@@ -14,6 +14,7 @@ from src.app.app_functions import (
     force_vector_extraction,
     toi_selector,
     bone_muscle_extraction,
+    manual_BC_selector,
     clear_output,
 )
 from src.app.app_visuals import (
@@ -21,8 +22,8 @@ from src.app.app_visuals import (
     visual_muscle_data,
     visual_force_vector_gif,
     visual_toi_boi_force_vectors,
+    visual_BCs,
 )
-from src.uFE.assign_boundary_conditions_manually import assign_bcs_manually
 
 sts = st.session_state
 
@@ -176,10 +177,8 @@ def page_force_vector():
                     sts.force_vectors_path,
                     sts.output_path,
                 )
-        else:
-            st.write(
-                "No geometry files uploaded yet. Please upload under :rainbow[Input]"
-            )
+    else:
+        st.write("No geometry files uploaded yet. Please upload under :rainbow[Input]")
 
     if (
         sts.gif_path is not None
@@ -197,6 +196,7 @@ def page_BCs():
     st.title("Boundary Conditions")
 
     select_BC_toggle = st.toggle("OpenSim derived BC selection", value=True)
+
     if select_BC_toggle:
         if sts.boi is not None:
             st.subheader(f"Select time of interest - {sts.boi}")
@@ -223,12 +223,41 @@ def page_BCs():
     else:
         st.subheader("Manual BC selection")
 
-        st.write("Coming soon!")
-        # assign_bcs_manually(sts.boi_path)
+        if st.button("Select BCs"):
+            manual_BC_selector(
+                sts.boi_path,
+                os.path.splitext(sts.osim_path)[0] + "_" + sts.boi,
+            )
+            visual_BCs(
+                sts.boi_path,
+                sts.dirichlet_path,
+                sts.neumann_path,
+            )
+
+    if sts.dirichlet_path:
+        st.divider()
+        if st.button("Show BCs"):
+            visual_BCs(
+                sts.boi_path,
+                sts.dirichlet_path,
+                sts.neumann_path,
+            )
+
 
 
 def page_FE():
     st.title("Finite Element")
+
+    if sts.dirichlet_path:
+        if st.button("Show BCs"):
+            visual_BCs(
+                sts.boi_path,
+                sts.dirichlet_path,
+                sts.neumann_path,
+            )
+        st.divider()
+
+
 
     if st.button("Generate volumetric bone mesh"):
         pass

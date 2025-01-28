@@ -1,11 +1,7 @@
 import os
-import re
 import numpy as np
 import pandas as pd
 import pyvista as pv
-import streamlit as st
-import plotly.express as px
-from stpyvista import stpyvista
 import matplotlib.pyplot as plt
 
 from src.MSM.sto_generator import read_input
@@ -82,51 +78,3 @@ def generate_vector_gif(
     print("\nGif succesfully generated.")
 
 
-def generate_force_vectors(
-    mesh_path,
-    muscle_force_path,
-    force_origins_path,
-    force_vectors_path,
-    step,
-):
-    mesh = pv.read(os.path.join(mesh_path))
-    df, _ = read_input(muscle_force_path)
-
-    force_origins = pd.read_json(force_origins_path, orient="records", lines=True)
-    force_vectors = pd.read_json(force_vectors_path, orient="records", lines=True)
-
-    pl = pv.Plotter(off_screen=False)
-    pl.view_xy()
-    pl.camera.zoom(2.5)
-    pl.background_color = "black"
-    pl.add_axes(interactive=True)
-    text = pl.add_text(f"Timestep: {step}", color="white")
-
-    pl.add_mesh(mesh, color="white")
-
-    muscle_names = [name for name in force_vectors.keys() if name != "time"]
-
-    force_vector_actor = {}
-
-    scale_factor = 0.01
-    for muscle in muscle_names:
-        for map in st.session_state.color_map:
-            if muscle in map:
-                rgb_color = st.session_state.color_map[map]
-        color = [int(color) for color in re.findall(r'\d+', rgb_color)]
-
-        pl.add_mesh(
-            pv.PolyData(force_origins[muscle][step]),
-            color=color,
-            point_size=10,
-            render_points_as_spheres=True,
-        )
-        force_vector_actor[muscle] = pl.add_mesh(
-            pv.Arrow(
-                start=force_origins[muscle][step],
-                direction=force_vectors[muscle][step],
-                scale=df[f"/forceset/{muscle}|active_fiber_force"][step] * scale_factor,
-            ),
-            color=color,
-        )
-    stpyvista(pl, key="toiboi")

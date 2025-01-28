@@ -80,6 +80,19 @@ def setup_paths():
             "vectors.gif",
         )
 
+    if "dirichlet_path" not in sts or sts.dirichlet_path is None:
+        sts.dirichlet_path = find_file_in_dir(
+            sts.output_path,
+            "dirichlet_BC.npy",
+        )
+
+    if "neumann_path" not in sts or sts.neumann_path is None:
+        sts.neumann_path = find_file_in_dir(
+            sts.output_path,
+            "neumann_BC.npy",
+        )
+
+
     # Params ------------------------------------------------------------------
     if "boi" not in sts:
         sts.boi = None
@@ -112,6 +125,7 @@ def find_file_in_dir(directory, string):
 
 
 def write_to_output(file, output_dir, tag):
+    tag = None if file.name[0: len(tag)] == tag else tag
     file_name = f"{tag}_{file.name}" if tag else file.name
     file_path = os.path.join(output_dir, file_name)
     with open(file_path, "wb") as f:

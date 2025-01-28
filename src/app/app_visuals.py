@@ -4,6 +4,9 @@
 import os
 import time
 import multiprocessing
+import numpy as np
+import pyvista as pv
+from stpyvista import stpyvista
 import streamlit as st
 import plotly.colors as pc
 import plotly.express as px
@@ -12,10 +15,8 @@ from streamlit_plotly_events import plotly_events
 
 from pathlib import Path
 from src.MSM.sto_generator import read_input
-from src.MSM.generate_force_vector_gif import (
-    generate_vector_gif,
-    generate_force_vectors,
-)
+from src.MSM.generate_force_vector_gif import generate_vector_gif
+from src.uFE.assign_boundary_conditions_manually import assign_bcs_manually, visualize_BCs
 
 
 # Defs ------------------------------------------------------------------------
@@ -229,10 +230,89 @@ def visual_toi_boi_force_vectors(
     force_vectors_path,
     step,
 ):
-    generate_force_vectors(
-        mesh_path,
-        muscle_force_path,
-        force_origins_path,
-        force_vectors_path,
-        step,
+    mesh = pv.read(os.path.join(mesh_path))
+    df, _ = read_input(muscle_force_path)
+
+    force_origins = pd.read_json(force_origins_path, orient="records", lines=True)
+    force_vectors = pd.read_json(force_vectors_path, orient="records", lines=True)
+
+    pl = pv.Plotter(off_screen=False)
+    pl.view_xy()
+    pl.camera.zoom(2.5)
+    pl.background_color = "black"
+    pl.add_axes(interactive=True)
+    text = pl.add_text(f"Timestep: {step}", color="white")
+
+    pl.add_mesh(mesh, color="white")
+
+    muscle_names = [name for name in force_vectors.keys() if name != "time"]
+
+    force_vector_actor = {}
+
+    scale_factor = 0.01
+    for muscle in muscle_names:
+        for map in st.session_state.color_map:
+            if muscle in map:
+                rgb_color = st.session_state.color_map[map]
+        color = [int(color) for color in re.findall(r"\d+", rgb_color)]
+
+        pl.add_mesh(
+            pv.PolyData(force_origins[muscle][step]),
+            color=color,
+            point_size=10,
+            render_points_as_spheres=True,
+        )
+        force_vector_actor[muscle] = pl.add_mesh(
+            pv.Arrow(
+                start=force_origins[muscle][step],
+                direction=force_vectors[muscle][step],
+                scale=df[f"/forceset/{muscle}|active_fiber_force"][step] * scale_factor,
+            ),
+            color=color,
+        )
+    stpyvista(pl, key="toiboi")
+
+
+def visual_manual_BC_selector(
+    mesh_path,
+    output_base,
+):
+    queue = multiprocessing.Queue()
+    process = multiprocessing.Process(
+        target=assign_bcs_manually,
+        args=(
+            mesh_path,
+            output_base,
+            queue,
+        ),
     )
+    process.start()
+    with st.spinner("Selecting BCs..."):
+        while process.is_alive():
+            time.sleep(0.1)
+    process.join()
+    dirichlet, neumann = None, None
+    if not queue.empty():
+        dirichlet, neumann = queue.get()
+
+    return dirichlet, neumann
+
+
+def visual_BCs(
+    mesh_path,
+    dirichlet_path,
+    neumann_path,
+):
+    process = multiprocessing.Process(
+        target=visualize_BCs,
+        args=(
+            mesh_path,
+            dirichlet_path,
+            neumann_path,
+        ),
+    )
+    process.start()
+    with st.spinner("Selecting BCs..."):
+        while process.is_alive():
+            time.sleep(0.1)
+    process.join()

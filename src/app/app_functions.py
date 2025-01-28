@@ -13,9 +13,10 @@ from src.MSM.force_vector_extractor import (
     extract_force_vectors,
     extract_model_bone_and_muscle,
 )
-from src.app.app_visuals import click_visual_toi_selector
+from src.app.app_visuals import click_visual_toi_selector, visual_manual_BC_selector
 
 sts = st.session_state
+
 
 # Defs ------------------------------------------------------------------------
 def run_moco(moco_path, osim_path, output_path):
@@ -32,9 +33,7 @@ def run_moco(moco_path, osim_path, output_path):
         )
         os.chdir(moco_path)
 
-        sts.moco_solution_path = os.path.join(
-            output_path, str(solution_path)
-        )
+        sts.moco_solution_path = os.path.join(output_path, str(solution_path))
 
         sts.moco_solution_muscle_fiber_path = os.path.join(
             output_path, str(muscle_fiber_path)
@@ -99,11 +98,21 @@ def toi_selector(sto, muscles):
     click_visual_toi_selector(df2)
 
 
-def clear_session_state():
+def manual_BC_selector(
+    boi_path,
+    output_base,
+):
+    sts.dirichlet_path, sts.neumann_path = visual_manual_BC_selector(
+        boi_path,
+        output_base,
+    )
+
+
+def clear_session_state(item=None):
     for key in sts.keys():
         if key == "app_path" or key == "output_path":
             continue
-        else:
+        elif item == sts[key]:
             del sts[key]
     st.rerun()
 
@@ -115,18 +124,20 @@ def clear_output(file_type="all", file_name=None):
             if os.path.isfile(file_path):
                 try:
                     os.unlink(file_path)
+                    clear_session_state(file_path)
                 except Exception as e:
                     print(f"Error while removing file: {e}")
         elif file_type == "file" and file_name is not None:
             if os.path.isfile(file_path) and file == file_name:
                 try:
                     os.unlink(file_path)
+                    clear_session_state(file_path)
                 except Exception as e:
                     print(f"Error while removing file: {e}")
         elif file_type == "all" or file_type == "dirs":
             if os.path.isdir(file_path):
                 try:
                     shutil.rmtree(file_path)
+                    clear_session_state(file_path)
                 except Exception as e:
                     print(f"Error while removing directory: {e}")
-    clear_session_state()

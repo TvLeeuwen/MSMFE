@@ -2,17 +2,19 @@
 Align surface mesh principal axes of inertia with the local coordinate system by calling `align_surface_mesh()`.
 
 :param `input_file`: Path/to/input_file(.ply).
-:param `output_file`: Path/to/output_file(.ply).
-:output aligned surface mesh .ply file of name `output_file`
+:param `output_file`: Path/to/output_file(.ply). :output aligned surface mesh .ply file of name `output_file`
 """
 
 
 # Imports ---------------------------------------------------------------------
 try:
+    import os
     import sys
     import argparse
     from pathlib import Path
     import numpy as np
+    import meshio
+    import pyvista as pv
     import trimesh
 
     sys.path.insert(0, str(Path(__file__).parents[1]))
@@ -65,7 +67,7 @@ def write_output(input_file: Path, output_file: Path, mesh):
             "aligned_" + input_file.name
         )
 
-    handle_args_dir_match(input_file, output_file)
+    # handle_args_dir_match(input_file, output_file)
     output_file = handle_args_suffix(output_file, ".ply")
 
     mesh.export(str(output_file))
@@ -76,8 +78,8 @@ def write_output(input_file: Path, output_file: Path, mesh):
 # Main -----------------------------------------------------------------------
 @timer
 def align_surface_mesh(
-    input_file: Path,
-    output_file: Path = None,
+    input_file: str,
+    output_file: str = None,
 ):
     """
     Align surface mesh principal axes of inertia with the local coordinate system.
@@ -88,7 +90,15 @@ def align_surface_mesh(
     """
 
     print_section()
-    print(f"-- Mesh alignment initiated - loading file: \n - {input_file.name}")
+    print(f"-- Mesh alignment initiated - loading file: \n - {Path(input_file).name}")
+
+    if os.path.splitext(input_file)[1] == ".vtp":
+        print("   - .vtp detected - mesh alignment requires .ply")
+        ply_file = os.path.splitext(output_file)[0] + ".ply"
+        pv.read(input_file).save(ply_file)
+        input_file = ply_file
+        print(f"   - {input_file} written.")
+
     mesh = trimesh.load(input_file)
 
     print("-- Loading complete, aligning mesh...")
@@ -123,6 +133,6 @@ if __name__ == "__main__":
     output_file = Path(args.output) if args.output else args.output
 
     align_surface_mesh(
-        Path(args.input),
+        args.input,
         output_file,
     )

@@ -19,10 +19,14 @@ import pyvista as pv
 import tetgen
 import meshio
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
-from utils.formatting import print_status, print_section, timer
-from utils.handle_args import handle_args_suffix, handle_args_dir_match, handle_args_integer
-from defaults.default_parameters import DEFAULT_ELEMENT_SIZE
+sys.path.insert(0, str(Path(__file__).parents[2]))
+print(str(Path(__file__).parents[2]))
+from src.uFE.utils.formatting import print_section, timer
+from src.uFE.utils.handle_args import (
+    handle_args_suffix,
+    # handle_args_dir_match,
+    handle_args_integer,
+)
 
 
 # Parse args ------------------------------------------------------------------
@@ -59,8 +63,8 @@ def parse_arguments():
         "-s",
         "--size",
         type=int,
-        help=f"Approximate mesh element size, default={DEFAULT_ELEMENT_SIZE}",
-        default=DEFAULT_ELEMENT_SIZE,
+        help=f"Approximate mesh element size, default=100",
+        default=100,
     )
     parser.add_argument(
         "-v",
@@ -74,7 +78,7 @@ def parse_arguments():
 # Defs ------------------------------------------------------------------------
 def generate_bounding_box(
     surf,
-    buffer: int = 10,
+    buffer: float = 0.01,
     visual: bool = False,
 ):
     """
@@ -86,16 +90,25 @@ def generate_bounding_box(
     """
 
     box_bounds = [
-        int(b - buffer) if i % 2 == 0 else int(b + buffer)
+        b - buffer if i % 2 == 0 else b + buffer
+        # int(b - buffer) if i % 2 == 0 else int(b + buffer)
         for i, b in enumerate(surf.bounds)
     ]
+    print(box_bounds)
     surf_box = pv.Box(bounds=box_bounds, level=8, quads=False)
 
     if visual:
-        plotter = pv.Plotter()
-        plotter.add_mesh(surf_box, show_edges=True, lighting=True, opacity=0.2)
-        plotter.add_mesh(surf, lighting=True, color="white", scalars=None)
-        plotter.show()
+        pl = pv.Plotter()
+        # plotter.add_mesh(
+        #     surf_box,
+        #     show_edges=True,
+        #     lighting=True,
+        #     opacity=.2,
+        #     scalars=None,
+        # )
+        pl.add_axes(interactive=True)
+        pl.add_mesh(surf, lighting=True, color="white", scalars=None)
+        pl.show()
 
     return surf_box
 
@@ -111,9 +124,9 @@ def tetgen_surf_box(
     tet.tetrahedralize(switches=f"qa{element_size}Q")
 
     if visual:
-        plotter = pv.Plotter()
-        plotter.add_mesh(tet.grid, lighting=True, show_edges=True, scalars=None)
-        plotter.show()
+        # plotter = pv.Plotter()
+        # plotter.add_mesh(tet.grid, lighting=True, show_edges=True, scalars=None)
+        # plotter.show()
 
         cells = tet.grid.cells.reshape(-1, 5)[:, 1:]
         cell_center = tet.grid.points[cells].mean(1)
@@ -133,7 +146,7 @@ def tetgen_surf_box(
     return tet
 
 
-@timer
+# @timer
 def write_output(
     input_file: Path, output_file: Path | None, vol_box, element_size: int
 ):
@@ -146,7 +159,7 @@ def write_output(
         ).with_suffix(".mesh")
 
     output_file = handle_args_suffix(output_file)
-    handle_args_dir_match(input_file, output_file)
+    # handle_args_dir_match(input_file, output_file)
 
     vtu_path = (output_file.parents[0] / output_file.stem).with_suffix(".vtu")
 
@@ -163,7 +176,7 @@ def write_output(
 def generate_initial_volumetric_mesh(
     input_file: Path,
     output_file: Path | None = None,
-    element_size: int = DEFAULT_ELEMENT_SIZE,
+    element_size: float = 0.1,
     visuals: bool = False,
 ) -> None:
     """
@@ -181,11 +194,11 @@ def generate_initial_volumetric_mesh(
     handle_args_integer(element_size)
 
     print_section()
-    print(f"-- Volumetric mesher initiated - loading file:\n - {input_file.name}")
+    print(f"-- Volumetric mesher initiated - loading file:\n - {input_file}")
 
     surf = pv.read(input_file)
 
-    surf_box = generate_bounding_box(surf, visual=visuals)
+    surf_box = generate_bounding_box(surf, visual=False)
 
     vol_box = tetgen_surf_box(
         surf_box,

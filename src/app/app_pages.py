@@ -15,6 +15,7 @@ from src.app.app_functions import (
     toi_selector,
     bone_muscle_extraction,
     manual_BC_selector,
+    generate_volumetric_mesh,
     clear_output,
 )
 from src.app.app_visuals import (
@@ -192,6 +193,20 @@ def page_force_vector():
         )
 
 
+def page_meshing():
+    st.title("Volumetric meshing")
+
+    if sts.boi is not None:
+        if st.button("Generate volumetric bone mesh"):
+            generate_volumetric_mesh(
+                sts.boi_path,
+                sts.output_path,
+                100,
+            )
+    else:
+        st.write(f"Please select a bone of interest under :rainbow[Muscle forces]")
+
+
 def page_BCs():
     st.title("Boundary Conditions")
 
@@ -244,7 +259,6 @@ def page_BCs():
             )
 
 
-
 def page_FE():
     st.title("Finite Element")
 
@@ -259,17 +273,13 @@ def page_FE():
 
 
 
-    if st.button("Generate volumetric bone mesh"):
-        pass
-
-
 def page_output():
     st.title("Output")
     st.write(f"Output directory: {sts.output_path}")
 
     output_files = [
         f
-        for f in os.listdir(sts.output_path)
+        for f in sorted(os.listdir(sts.output_path), key=lambda x: (x.lower(), len(x)))
         if os.path.isfile(os.path.join(sts.output_path, f))
     ]
 
@@ -281,13 +291,14 @@ def page_output():
             download_name=download,
         )
 
-        if st.button("Clear all output"):
+        if st.button(":red[Clear all output]"):
             clear_output("all")
             st.rerun()
 
         st.subheader("Files")
-        if st.button("Clear files"):
+        if st.button(":red[Clear files]"):
             clear_output("files")
+
         st.subheader("Download files")
 
         for file_name in output_files:
@@ -300,11 +311,11 @@ def page_output():
                 )
         st.subheader("Remove files", divider="red")
         for file_name in output_files:
-            if st.button(f"Remove {file_name}"):
+            if st.button(f":red[{file_name}]"):
                 clear_output("file", file_name)
 
         st.subheader("Folders")
-        if st.button("Clear folders"):
+        if st.button(":red[Clear folders]"):
             clear_output("dirs")
 
         [

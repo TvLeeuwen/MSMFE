@@ -2,7 +2,10 @@
 
 # Imports ---------------------------------------------------------------------
 import os
+import time
 import shutil
+import subprocess
+import multiprocessing
 import pandas as pd
 import streamlit as st
 from pathlib import Path
@@ -14,6 +17,11 @@ from src.MSM.force_vector_extractor import (
     extract_model_bone_and_muscle,
 )
 from src.app.app_visuals import click_visual_toi_selector, visual_manual_BC_selector
+from src.app.app_FE_calls import (
+    call_initial_volumetric_mesher,
+    call_align_moment_of_inertia,
+)
+
 
 sts = st.session_state
 
@@ -106,6 +114,35 @@ def manual_BC_selector(
         boi_path,
         output_base,
     )
+
+
+def generate_volumetric_mesh(
+    mesh_file,
+    output_path,
+    element_size,
+):
+    """
+    [TODO:description]
+
+    :param mesh_file [TODO:type]: [TODO:description]
+    :param element_size [TODO:type]: [TODO:description]
+    """
+    with st.spinner("Generating mesh..."):
+        aligned_file = os.path.join(
+            output_path,
+            os.path.splitext("uFE_" + os.path.basename(mesh_file))[0] + "_aligned.ply",
+        )
+        call_align_moment_of_inertia(
+            mesh_file,
+            aligned_file,
+        )
+
+        initial_file = os.path.splitext(aligned_file)[0] + "_initial.vtp"
+        call_initial_volumetric_mesher(
+            aligned_file,
+            initial_file,
+            element_size,
+        )
 
 
 def clear_session_state(item=None):

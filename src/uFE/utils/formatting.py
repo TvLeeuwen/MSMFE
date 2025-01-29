@@ -24,7 +24,6 @@ def timer(func):
 
     return wrapper
 
-
 def return_timer(func):
     """Decorator to time functions"""
 

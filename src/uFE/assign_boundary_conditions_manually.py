@@ -13,16 +13,11 @@ Select the location of both Dirichlet and Neumann boundary conditions manually b
 """
 
 ### Imports --------------------------------------------------------------------
-import os
 import argparse
-import multiprocessing
 from pathlib import Path
 import pyvista as pv
-import streamlit as st
-from stpyvista import stpyvista
 import numpy as np
 
-from src.uFE.utils.handle_args import ask_user_to_continue
 from src.uFE.utils.formatting import timer, print_section
 
 

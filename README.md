@@ -47,7 +47,10 @@ Press the `Run MSMFE` button
 
     conda install -c opensim-org openssim
 
-    pip install pandas numpy pymatreader plotly lxml streamlit pyvista stpyvista imageio
+    pip install pandas pymatreader plotly lxml streamlit pyvista stpyvista imageio
+    
+    MSM_FE:
+    numpy pyvista tetgen meshio trimesh
 
 ### Remove env
     

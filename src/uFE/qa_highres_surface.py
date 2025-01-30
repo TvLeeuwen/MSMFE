@@ -10,19 +10,19 @@ Assure surface mesh quality using MeshLab api methods by calling `assure_surface
 
 # import
 try:
+    import os
     import sys
     import argparse
-    from pathlib import Path
     import pymeshlab
+    import pyvista as pv
+    from pathlib import Path
 
     sys.path.insert(0, str(Path(__file__).parents[1]))
     from utils.formatting import print_status, print_section, timer
-    from utils.handle_args import handle_args_dir_match, handle_args_suffix
+    from utils.handle_args import handle_args_suffix
+    from utils.default_parameters import DEFAULT_MAX_HOLE_SIZE
 except ModuleNotFoundError as e:
     sys.exit(f"-- {e}")
-
-# Default params --------------------------------------------------------------
-DEFAULT_MAX_HOLE_SIZE = 500
 
 
 # Parse args ------------------------------------------------------------------
@@ -140,7 +140,6 @@ def write_output(
             "QA_approved_" + input_file.name
         )
 
-    handle_args_dir_match(input_file, output_file)
     output_file = handle_args_suffix(output_file, ".ply")
 
     print(f"-- Writing file:\n - {output_file}")
@@ -177,12 +176,22 @@ def assure_surface_mesh_quality(
     print_section()
     print(f"-- Quality assurance initiated - loading file:\n - {input_file.name}")
 
+    if os.path.splitext(input_file)[1] == ".vtp":
+        print("   - .vtp detected - mesh alignment requires .ply")
+        ply_file = os.path.splitext(output_file)[0] + ".ply"
+        pv.read(input_file).save(ply_file)
+        input_file = ply_file
+        print(f"   - {input_file} written.")
+
+
     ms = pymeshlab.MeshSet()
     ms.load_new_mesh(str(input_file))
 
     ms = check_and_fix_non_manifold(ms)
 
     ms = check_and_fix_holes(ms, max_hole_size)
+
+    ms.compute_normal_per_face()
 
     write_output(input_file, output_file, ms, visual=visuals)
 

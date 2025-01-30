@@ -24,7 +24,6 @@ print(str(Path(__file__).parents[2]))
 from src.uFE.utils.formatting import print_section, timer
 from src.uFE.utils.handle_args import (
     handle_args_suffix,
-    # handle_args_dir_match,
     handle_args_integer,
 )
 
@@ -78,7 +77,7 @@ def parse_arguments():
 # Defs ------------------------------------------------------------------------
 def generate_bounding_box(
     surf,
-    buffer: float = 0.01,
+    buffer: int = 3,
     visual: bool = False,
 ):
     """
@@ -90,22 +89,15 @@ def generate_bounding_box(
     """
 
     box_bounds = [
-        b - buffer if i % 2 == 0 else b + buffer
-        # int(b - buffer) if i % 2 == 0 else int(b + buffer)
+        # b - buffer if i % 2 == 0 else b + buffer
+        int(b - buffer) if i % 2 == 0 else int(b + buffer)
         for i, b in enumerate(surf.bounds)
     ]
-    print(box_bounds)
+
     surf_box = pv.Box(bounds=box_bounds, level=8, quads=False)
 
     if visual:
         pl = pv.Plotter()
-        # plotter.add_mesh(
-        #     surf_box,
-        #     show_edges=True,
-        #     lighting=True,
-        #     opacity=.2,
-        #     scalars=None,
-        # )
         pl.add_axes(interactive=True)
         pl.add_mesh(surf, lighting=True, color="white", scalars=None)
         pl.show()
@@ -124,10 +116,6 @@ def tetgen_surf_box(
     tet.tetrahedralize(switches=f"qa{element_size}Q")
 
     if visual:
-        # plotter = pv.Plotter()
-        # plotter.add_mesh(tet.grid, lighting=True, show_edges=True, scalars=None)
-        # plotter.show()
-
         cells = tet.grid.cells.reshape(-1, 5)[:, 1:]
         cell_center = tet.grid.points[cells].mean(1)
         cutting_plane = 2
@@ -138,17 +126,21 @@ def tetgen_surf_box(
         cell_ind = mask.nonzero()[0]
         subgrid = tet.grid.extract_cells(cell_ind)
 
-        plotter = pv.Plotter()
-        plotter.add_mesh(surf, lighting=True, color="white", scalars=None)
-        plotter.add_mesh(subgrid, lighting=True, show_edges=True)
-        plotter.show()
+        pl = pv.Plotter()
+        pl.add_mesh(surf, lighting=True, color="white", scalars=None)
+        pl.add_mesh(subgrid, lighting=True, show_edges=True)
+        pl.add_axes(interactive=True)
+        pl.show()
 
     return tet
 
 
 # @timer
 def write_output(
-    input_file: Path, output_file: Path | None, vol_box, element_size: int
+    input_file: Path,
+    output_file: Path | None,
+    vol_box,
+    element_size: int,
 ):
     print_section()
 
@@ -176,7 +168,7 @@ def write_output(
 def generate_initial_volumetric_mesh(
     input_file: Path,
     output_file: Path | None = None,
-    element_size: float = 0.1,
+    element_size: int = 1,
     visuals: bool = False,
 ) -> None:
     """
@@ -207,7 +199,12 @@ def generate_initial_volumetric_mesh(
         visual=visuals,
     )
 
-    write_output(input_file, output_file, vol_box, element_size)
+    write_output(
+        input_file,
+        output_file,
+        vol_box,
+        element_size,
+    )
 
     print("-- Initial volumetric mesh generated - time elapsed:")
 

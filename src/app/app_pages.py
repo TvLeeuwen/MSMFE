@@ -198,11 +198,15 @@ def page_meshing():
 
     if sts.boi is not None:
         if st.button("Generate volumetric bone mesh"):
-            generate_volumetric_mesh(
+            result = generate_volumetric_mesh(
                 sts.boi_path,
                 sts.output_path,
-                100,
+                1,
             )
+            if result.returncode:
+                st.error("Failed to generate mesh")
+                print(result.stderr)
+            
     else:
         st.write(f"Please select a bone of interest under :rainbow[Muscle forces]")
 

@@ -18,8 +18,10 @@ from src.MSM.force_vector_extractor import (
 )
 from src.app.app_visuals import click_visual_toi_selector, visual_manual_BC_selector
 from src.app.app_FE_calls import (
+    call_qa_highres_surface,
     call_initial_volumetric_mesher,
     call_align_moment_of_inertia,
+    call_implicit_domain_volumetric_mesh_generator,
 )
 
 
@@ -128,21 +130,57 @@ def generate_volumetric_mesh(
     :param element_size [TODO:type]: [TODO:description]
     """
     with st.spinner("Generating mesh..."):
-        aligned_file = os.path.join(
+
+        qa_file = os.path.join(
             output_path,
-            os.path.splitext("uFE_" + os.path.basename(mesh_file))[0] + "_aligned.ply",
+            os.path.splitext("uFE_qa_" + os.path.basename(mesh_file))[0] + ".ply",
         )
-        call_align_moment_of_inertia(
+        result = call_qa_highres_surface(
             mesh_file,
+            qa_file,
+        )
+        if result.returncode:
+            return result
+
+        aligned_file = os.path.splitext(qa_file)[0] + "_aligned.ply"
+        # aligned_file = os.path.join(
+        #     output_path,
+        #     os.path.splitext("uFE_" + os.path.basename(mesh_file))[0] + "_aligned.ply",
+        # )
+        result = call_align_moment_of_inertia(
+            # mesh_file,
+            qa_file,
             aligned_file,
         )
+        if result.returncode:
+            return result
 
-        initial_file = os.path.splitext(aligned_file)[0] + "_initial.vtp"
-        call_initial_volumetric_mesher(
+        initial_file = os.path.splitext(aligned_file)[0] + "_initial.mesh"
+        result = call_initial_volumetric_mesher(
             aligned_file,
             initial_file,
             element_size,
         )
+        if result.returncode:
+            return result
+
+        volume_file = os.path.splitext(aligned_file)[0] + "_volumetric.mesh"
+        result = call_implicit_domain_volumetric_mesh_generator(
+            initial_file,
+            aligned_file,
+            volume_file,
+            hausd=1e0,
+            hgrad=1.3,
+            hmin=1e-2,
+            hmax=1e0,
+            subdomain=3,
+            mem_max=16000,
+            refine_iterations=0,
+        )
+        if result.returncode:
+            return result
+
+        return result
 
 
 def clear_session_state(item=None):

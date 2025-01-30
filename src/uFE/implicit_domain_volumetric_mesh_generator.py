@@ -1,16 +1,17 @@
 """
 Generates .mesh and .sol file for MMG based zero level-set mesh adaptation
-askgjsdkg
 """
-import os, sys
+import os
+import sys
 import argparse
+import numpy as np
 import pyvista as pv
 import subprocess
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
+# sys.path.insert(0, str(Path(__file__).parents[2]))
 from utils.formatting import print_status, return_timer, print_section
-from defaults.default_parameters import (
+from utils.default_parameters import (
     DEFAULT_HAUSD,
     DEFAULT_HGRAD,
     DEFAULT_HMIN,
@@ -19,7 +20,7 @@ from defaults.default_parameters import (
     DEFAULT_MEMORY_MAX,
     DEFAULT_MESH_ITERATIONS,
 )
-from uFE.subdomain_extractor import extract_subdomain
+from subdomain_extractor import extract_subdomain
 
 
 # Parse args ------------------------------------------------------------------
@@ -42,7 +43,14 @@ def parse_arguments():
         "-i",
         "--input",
         type=str,
-        help="Input path to surface mesh .ply file",
+        help="Path to initial mesh .mesh",
+        required=True,
+    )
+    parser.add_argument(
+        "-s",
+        "--surf",
+        type=str,
+        help="Path to surface mesh .ply file",
         required=True,
     )
     parser.add_argument(
@@ -56,7 +64,8 @@ def parse_arguments():
         "-hausd",
         "--hausd",
         type=float,
-        help=f"Maximum Hausdorff distance for the boundaries approximation, higher values refine higher curvatures - default: {DEFAULT_HAUSD}",
+        help=f"Maximum Hausdorff distance for the boundaries approximation,\
+        higher values refine higher curvatures - default: {DEFAULT_HAUSD}",
         default=DEFAULT_HAUSD,
     )
     parser.add_argument(
@@ -124,6 +133,7 @@ def handle_args_none_ouput_file(input_file: Path, output_file: Path | None = Non
         )
 
     return output_file
+
 
 def handle_args_none_ouput_file(input_file: Path, output_file: Path | None = None):
     if output_file is None:
@@ -244,11 +254,38 @@ def generate_implicit_domain_volumetric_mesh(
         mesh = pv.read(input_file)
         surf = pv.read(surf_file)
 
-        print_status("-- Volumetric mesh loaded, mesh bounds: ", f"{[int(bound) for bound in mesh.bounds]}")
+        print_status(
+            "-- Volumetric mesh loaded, mesh bounds: ",
+            f"{[bound for bound in mesh.bounds]}",
+        )
+
+        if visuals:
+            cells = mesh.cells.reshape(-1, 5)[:, 1:]
+            cell_center = mesh.points[cells].mean(1)
+            cutting_plane = 2
+            half = np.mean(
+                [surf.bounds[cutting_plane * 2],
+                 surf.bounds[(cutting_plane * 2) + 1]]
+            )
+            mask = cell_center[:, cutting_plane] < half
+            cell_ind = mask.nonzero()[0]
 
         print("-- Computing signed distances")
         mesh.compute_implicit_distance(surf, inplace=True)
         signed_distances = mesh["implicit_distance"]
+
+        if visuals:
+            subgrid = mesh.extract_cells(cell_ind)
+
+            plotter = pv.Plotter()
+            plotter.add_mesh(subgrid,
+                             show_edges=True,
+                             scalars="implicit_distance",
+                             cmap="coolwarm",
+                             clim=[-1, 1],
+                             )
+            plotter.add_mesh(surf, lighting=True, color='white', scalars=None)
+            plotter.show()
 
         sol_file = generate_sol_file(input_file, signed_distances)
 
@@ -291,7 +328,7 @@ if __name__ == "__main__":
         args.hmin,
         args.hmax,
         args.subdomain,
-        args.mem_max,
+        args.mem,
         args.iterations,
         args.debug,
         args.visuals,

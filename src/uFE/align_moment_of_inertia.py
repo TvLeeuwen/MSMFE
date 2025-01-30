@@ -13,13 +13,11 @@ try:
     import argparse
     from pathlib import Path
     import numpy as np
-    import meshio
-    import pyvista as pv
     import trimesh
 
     sys.path.insert(0, str(Path(__file__).parents[1]))
     from utils.formatting import print_section, timer
-    from utils.handle_args import handle_args_dir_match, handle_args_suffix
+    from utils.handle_args import handle_args_suffix
 
 except ModuleNotFoundError as e:
     sys.exit(f"-- {e}")
@@ -75,6 +73,27 @@ def write_output(input_file: Path, output_file: Path, mesh):
     print(f"-- Writing:\n - {output_file.name}.")
 
 
+def scale_factor(points, target_min=1, target_max=100):
+    """
+    Computes a uniform rescale factor for a point cloud to fit within a target range.
+    
+    :param points: NumPy array of shape (N, 3) representing XYZ coordinates.
+    :param target_min: Minimum value of the rescaled range (default: 1).
+    :param target_max: Maximum value of the rescaled range (default: 1000).
+    :return: The scale factor and the shifted point cloud.
+    """
+    min_val = np.min(points)
+    max_val = np.max(points)
+
+    if min_val == max_val:
+        raise ValueError("All points have the same value; mesn not valid.")
+
+    # Compute a uniform scale factor
+    scale_factor = (target_max - target_min) / (max_val - min_val)
+    print(f" - Scaling mesh - factor: {scale_factor}")
+
+    return scale_factor
+
 # Main -----------------------------------------------------------------------
 @timer
 def align_surface_mesh(
@@ -92,12 +111,6 @@ def align_surface_mesh(
     print_section()
     print(f"-- Mesh alignment initiated - loading file: \n - {Path(input_file).name}")
 
-    if os.path.splitext(input_file)[1] == ".vtp":
-        print("   - .vtp detected - mesh alignment requires .ply")
-        ply_file = os.path.splitext(output_file)[0] + ".ply"
-        pv.read(input_file).save(ply_file)
-        input_file = ply_file
-        print(f"   - {input_file} written.")
 
     mesh = trimesh.load(input_file)
 
@@ -121,6 +134,8 @@ def align_surface_mesh(
     )
 
     mesh.apply_transform(full_transformation)
+
+    mesh.vertices = mesh.vertices*scale_factor(mesh.vertices)
 
     write_output(input_file, output_file, mesh)
 

@@ -84,6 +84,8 @@ def visualize_BCs(
 if __name__ == "__main__":
     args = parse_arguments()
 
+    print("Debuf", args.neumann)
+
     visualize_BCs(
         args.input,
         args.dirichlet,

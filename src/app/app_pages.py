@@ -132,15 +132,20 @@ def page_force_vector():
                 "vectors.json": "force_vectors_path",
                 "volumetric.mesh": "vol_path",
                 "extracted.mesh": "vol_path",
+                "dirichlet": "dirichlet_path",
+                "neumann.npy": "neumann_path",
             }
             for dirpath, _, files in os.walk(sts.output_path):
-                for file in files:
-                    if sts.boi in file:
-                        for key, attr in file_mapping.items():
-                            if key in file:
-                                setattr(sts, attr, os.path.join(dirpath, file))
-                                break
+                for key, attr in file_mapping.items():
+                    for file in files:
+                        if sts.boi in file:
+                                if key in file:
+                                    print(file)
+                                    setattr(sts, attr, os.path.join(dirpath, file))
+                                    break
 
+            st.write(sts.dirichlet_path)
+            st.write(sts.vol_path)
                     # if sts.boi in file:
                     #     if ".gif" in file:
                     #         sts.gif_path = os.path.join(dirpath, file)
@@ -281,23 +286,28 @@ def page_BCs():
                 )
 
     else:
-        st.subheader(f"Manual BC selection")
+        st.subheader("Manual BC selection")
 
-        if os.path.exists(sts.vol_path) and sts.boi in sts.vol_path:
-            st.write(os.path.basename(sts.vol_path))
-            if st.button(f"Select BCs on {sts.boi}"):
-                manual_BC_selector(
-                    sts.vol_path,
-                    os.path.splitext(sts.osim_path)[0] + "_" + sts.boi,
+        if sts.boi is not None:
+            if (
+                sts.vol_path is not None
+                and os.path.exists(sts.vol_path)
+                and sts.boi in sts.vol_path
+            ):
+                if st.button(f"Select BCs on {sts.boi}"):
+                    manual_BC_selector(
+                        sts.vol_path,
+                        os.path.splitext(sts.osim_path)[0] + "_" + sts.boi,
+                    )
+            else:
+                st.write(
+                    "Generate a volumetric mesh under :rainbow[Volumetric meshing] \
+                        before selecting any boundary conditions"
                 )
-
         else:
-            st.write(
-                "Generate a volumetric mesh under :rainbow[Volumetric meshing] \
-                    before selecting any boundary conditions"
-            )
+            st.write(f"Please select a bone of interest under :rainbow[Muscle forces]")
 
-    if sts.dirichlet_path:
+    if sts.dirichlet_path and sts.boi in sts.dirichlet_path:
         st.divider()
         if st.button(f"Show current BCs for {sts.boi}"):
 

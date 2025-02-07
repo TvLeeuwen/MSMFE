@@ -206,6 +206,15 @@ def manual_BC_selector(
     output_base,
 ):
     with st.spinner("Selecting boundary conditions"):
+        if "dirichlet_path" in sts and os.path.isfile(sts.dirichlet_path):
+            os.unlink(sts.dirichlet_path)
+        if (
+            "neumann_path" in sts
+            and sts.neumann_path is not None
+            and os.path.isfile(sts.neumann_path)
+        ):
+            os.unlink(sts.neumann_path)
+
         result, dirichlet, neumann = call_assign_boundary_conditions_manually(
             vol_path,
             output_base,
@@ -220,10 +229,19 @@ def manual_BC_selector(
 
 def visualize_BCs(
     mesh_file,
-    dirichlet_file,
-    neumann_file,
+    dirichlet_path,
+    neumann_path,
 ):
     with st.spinner("Showing boundary conditions"):
+        dirichlet_file = dirichlet_path if os.path.isfile(dirichlet_path) else None
+        if sts.neumann_path is not None:
+            neumann_file = neumann_path if os.path.isfile(neumann_path) else None
+        else:
+            neumann_file = None
+
+        if dirichlet_file is None:
+            st.warning("Warning: No BCs were selected")
+
         result = call_bc_visualizer(
             mesh_file,
             dirichlet_file,

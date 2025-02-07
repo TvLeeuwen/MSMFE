@@ -64,8 +64,8 @@ def call_qa_highres_surface(
 
 
 def call_align_moment_of_inertia(
-        mesh_file,
-        output_file,
+    mesh_file,
+    output_file,
 ):
     result = subprocess.run(
         [
@@ -202,8 +202,7 @@ def call_bc_visualizer(
     dirichlet_file,
     neumann_file,
 ):
-    result = subprocess.run(
-        [
+    command = [
             "conda",
             "run",
             "-n",
@@ -212,11 +211,24 @@ def call_bc_visualizer(
             "src/uFE/bc_visualizer.py",
             "-i",
             f"{mesh_file}",
-            "-d",
-            f"{dirichlet_file}",
-            "-n",
-            f"{neumann_file}",
-        ],
+        ]
+    if dirichlet_file:
+        command.extend(
+            [
+                "-d",
+                f"{dirichlet_file}",
+            ]
+        )
+    if neumann_file:
+        command.extend(
+            [
+                "-n",
+                f"{neumann_file}",
+            ]
+        )
+
+    result = subprocess.run(
+        command,
         capture_output=True,
         text=True,
     )

@@ -15,6 +15,8 @@ from src.app.app_functions import (
     toi_selector,
     bone_muscle_extraction,
     manual_BC_selector,
+    visualize_BCs,
+    remesh_surface,
     generate_volumetric_mesh,
     clear_output,
 )
@@ -124,15 +126,30 @@ def page_force_vector():
             sts.boi = boi
 
         if sts.boi:
+            file_mapping = {
+                ".gif": "gif_path",
+                "origins.json": "force_origins_path",
+                "vectors.json": "force_vectors_path",
+                "volumetric.mesh": "vol_path",
+                "extracted.mesh": "vol_path",
+            }
             for dirpath, _, files in os.walk(sts.output_path):
                 for file in files:
                     if sts.boi in file:
-                        if ".gif" in file:
-                            sts.gif_path = os.path.join(dirpath, file)
-                        elif "origins.json" in file:
-                            sts.force_origins_path = os.path.join(dirpath, file)
-                        elif "vectors.json" in file:
-                            sts.force_vectors_path = os.path.join(dirpath, file)
+                        for key, attr in file_mapping.items():
+                            if key in file:
+                                setattr(sts, attr, os.path.join(dirpath, file))
+                                break
+
+                    # if sts.boi in file:
+                    #     if ".gif" in file:
+                    #         sts.gif_path = os.path.join(dirpath, file)
+                    #     elif "origins.json" in file:
+                    #         sts.force_origins_path = os.path.join(dirpath, file)
+                    #     elif "vectors.json" in file:
+                    #         sts.force_vectors_path = os.path.join(dirpath, file)
+                    #     elif "volumetric.mesh" in file:
+                    #         sts.vol_path = os.path.join(dirpath, file)
 
     else:
         st.write("No files uploaded yet. Please upload under :rainbow[input]")
@@ -144,8 +161,6 @@ def page_force_vector():
             sts.boi,
             sts.output_path,
         )
-    elif sts.boi is not None:
-        st.write("Please select a :rainbow[bone]")
     else:
         st.write(
             "No dynamics detected. Run :rainbow[Track Kinematics] \
@@ -153,11 +168,7 @@ def page_force_vector():
         )
 
     if (
-        sts.force_origins_path is not None
-        and sts.force_vectors_path is not None
-        and os.path.exists(sts.force_origins_path)
-        and os.path.exists(sts.force_vectors_path)
-        and sts.boi is not None
+        sts.boi is not None
         and sts.geom_path is not None
         and os.path.exists(sts.geom_path)
     ):
@@ -169,17 +180,25 @@ def page_force_vector():
                         bone,
                     )
 
-            # Generate gif ----------------------------------------------------
-            if st.button(f"Generate {sts.boi} gif"):
-                visual_force_vector_gif(
-                    sts.boi_path,
-                    sts.moco_solution_muscle_fiber_path,
-                    sts.force_origins_path,
-                    sts.force_vectors_path,
-                    sts.output_path,
-                )
     else:
         st.write("No geometry files uploaded yet. Please upload under :rainbow[Input]")
+
+    if (
+        sts.force_origins_path is not None
+        and sts.force_vectors_path is not None
+        and os.path.exists(sts.force_origins_path)
+        and os.path.exists(sts.force_vectors_path)
+        and sts.boi_path is not None
+    ):
+        # Generate gif ----------------------------------------------------
+        if st.button(f"Generate {sts.boi} gif"):
+            visual_force_vector_gif(
+                sts.boi_path,
+                sts.moco_solution_muscle_fiber_path,
+                sts.force_origins_path,
+                sts.force_vectors_path,
+                sts.output_path,
+            )
 
     if (
         sts.gif_path is not None
@@ -194,11 +213,25 @@ def page_force_vector():
 
 
 def page_meshing():
-    st.title("Volumetric meshing")
+    st.title(f"Volumetric meshing")
 
-    if sts.boi is not None:
-        if st.button("Generate volumetric bone mesh"):
-            result = generate_volumetric_mesh(
+    select_mesh_toggle = st.toggle("Mesh OpenSim geometry", value=True)
+
+    if not select_mesh_toggle:
+        st.write("Upload custom geometry")
+
+    if sts.boi is not None and sts.boi_path is not None:
+        # if st.button("Remesh surface mesh"):
+        #     result = remesh_surface(
+        #         sts.boi_path,
+        #         sts.output_path,
+        #     )
+        #     if result.returncode:
+        #         st.error("Failed to remesh")
+        #         print(result.stderr)
+
+        if st.button(f"Generate {sts.boi} volumetric mesh"):
+            result, sts.vol_path = generate_volumetric_mesh(
                 sts.boi_path,
                 sts.output_path,
                 1,
@@ -206,7 +239,10 @@ def page_meshing():
             if result.returncode:
                 st.error("Failed to generate mesh")
                 print(result.stderr)
-            
+
+        if os.path.exists(sts.vol_path) and sts.boi in sts.vol_path:
+            st.success(f"Volumetric {sts.boi} mesh generated")
+
     else:
         st.write(f"Please select a bone of interest under :rainbow[Muscle forces]")
 
@@ -218,14 +254,19 @@ def page_BCs():
 
     if select_BC_toggle:
         if sts.boi is not None:
-            st.subheader(f"Select time of interest - {sts.boi}")
-            muscles = [muscle for muscle in sts.bones_muscle_map[sts.boi]]
+            if sts.moco_solution_muscle_fiber_path is not None and os.path.exists(
+                sts.moco_solution_muscle_fiber_path
+            ):
+                st.subheader(f"Select time of interest - {sts.boi}")
+                muscles = [muscle for muscle in sts.bones_muscle_map[sts.boi]]
 
-            toi_selector(
-                sts.moco_solution_muscle_fiber_path,
-                muscles,
-            )
-            st.write(f"Selected time: {st.session_state.toi}")
+                toi_selector(
+                    sts.moco_solution_muscle_fiber_path,
+                    muscles,
+                )
+                st.write(f"Selected time: {st.session_state.toi}")
+            else:
+                st.write("No dynamics detected. Please run :rainbow[Track Kinematics]")
         else:
             st.write(f"Please select a bone of interest under :rainbow[Muscle forces]")
 
@@ -240,27 +281,31 @@ def page_BCs():
                 )
 
     else:
-        st.subheader("Manual BC selection")
+        st.subheader(f"Manual BC selection")
 
-        if st.button("Select BCs"):
-            manual_BC_selector(
-                sts.boi_path,
-                os.path.splitext(sts.osim_path)[0] + "_" + sts.boi,
-            )
-            visual_BCs(
-                sts.boi_path,
-                sts.dirichlet_path,
-                sts.neumann_path,
+        if os.path.exists(sts.vol_path) and sts.boi in sts.vol_path:
+            st.write(os.path.basename(sts.vol_path))
+            if st.button(f"Select BCs on {sts.boi}"):
+                manual_BC_selector(
+                    sts.vol_path,
+                    os.path.splitext(sts.osim_path)[0] + "_" + sts.boi,
+                )
+
+        else:
+            st.write(
+                "Generate a volumetric mesh under :rainbow[Volumetric meshing] \
+                    before selecting any boundary conditions"
             )
 
     if sts.dirichlet_path:
         st.divider()
-        if st.button("Show BCs"):
-            visual_BCs(
-                sts.boi_path,
-                sts.dirichlet_path,
-                sts.neumann_path,
-            )
+        if st.button(f"Show current BCs for {sts.boi}"):
+
+            visualize_BCs(
+                    sts.vol_path,
+                    sts.dirichlet_path,
+                    sts.neumann_path,
+                )
 
 
 def page_FE():
@@ -269,12 +314,11 @@ def page_FE():
     if sts.dirichlet_path:
         if st.button("Show BCs"):
             visual_BCs(
-                sts.boi_path,
+                sts.vol_path,
                 sts.dirichlet_path,
                 sts.neumann_path,
             )
         st.divider()
-
 
 
 def page_output():
@@ -313,6 +357,7 @@ def page_output():
                     data=file_data,
                     file_name=file_name,
                 )
+
         st.subheader("Remove files", divider="red")
         for file_name in output_files:
             if st.button(f":red[{file_name}]"):

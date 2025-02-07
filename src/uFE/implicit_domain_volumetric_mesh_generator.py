@@ -303,7 +303,7 @@ def generate_implicit_domain_volumetric_mesh(
             debug=debug,
         )
 
-    if extract_subdomain:
+    if extract_domain:
         extract_subdomain(
             output_file,
             subdomain=extract_domain,

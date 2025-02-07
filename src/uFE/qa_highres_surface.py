@@ -140,17 +140,14 @@ def write_output(
             "QA_approved_" + input_file.name
         )
 
-    output_file = handle_args_suffix(output_file, ".ply")
-
     print(f"-- Writing file:\n - {output_file}")
     meshset.save_current_mesh(str(output_file))
 
     if visual:
         import pyvista as pv
 
-        plotter = pv.Plotter()
-        plotter.add_mesh(pv.read(output_file), color="white", scalars=None)
-        plotter.show()
+        mesh = pv.read(output_file)
+        mesh.plot_normals(mag=0.003, flip=True, show_edges=True, color="red")
 
     return output_file
 
@@ -158,8 +155,8 @@ def write_output(
 # Main -----------------------------------------------------------------------
 @timer
 def assure_surface_mesh_quality(
-    input_file: Path,
-    output_file: Path | None = None,
+    input_file,
+    output_file=None,
     max_hole_size: int = DEFAULT_MAX_HOLE_SIZE,
     visuals: bool = False,
 ) -> None:
@@ -174,7 +171,7 @@ def assure_surface_mesh_quality(
     """
 
     print_section()
-    print(f"-- Quality assurance initiated - loading file:\n - {input_file.name}")
+    print(f"-- Quality assurance initiated - loading file:\n - {os.path.basename(input_file)}")
 
     if os.path.splitext(input_file)[1] == ".vtp":
         print("   - .vtp detected - mesh alignment requires .ply")
@@ -188,12 +185,14 @@ def assure_surface_mesh_quality(
     ms.load_new_mesh(str(input_file))
 
     ms = check_and_fix_non_manifold(ms)
-
     ms = check_and_fix_holes(ms, max_hole_size)
 
-    ms.compute_normal_per_face()
-
     write_output(input_file, output_file, ms, visual=visuals)
+
+    if visuals:
+        mesh = pv.read(output_file)
+        mesh.plot_normals(mag=0.003, flip=True, show_edges=True, color="red")
+
 
     print("-- Quality assurance finished, time elapsed:")
 
@@ -201,11 +200,9 @@ def assure_surface_mesh_quality(
 if __name__ == "__main__":
     args = parse_arguments()
 
-    output_file = Path(args.output) if args.output else args.output
-
     assure_surface_mesh_quality(
-        Path(args.input),
-        output_file,
+        args.input,
+        args.output,
         args.maxholesize,
         args.visuals,
     )

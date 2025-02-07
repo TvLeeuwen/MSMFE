@@ -12,6 +12,31 @@ from src.uFE.utils.default_parameters import (
 
 
 # Defs ------------------------------------------------------------------------
+def call_surface_remesher(
+    mesh_file,
+    output_file,
+):
+    result = subprocess.run(
+        [
+            "conda",
+            "run",
+            "-n",
+            "envMSM_FE",
+            "python",
+            "src/uFE/surface_remesher.py",
+            "-i",
+            f"{mesh_file}",
+            "-o",
+            f"{output_file}",
+            "-v",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout)
+    return result
+
+
 def call_qa_highres_surface(
     mesh_file,
     output_file,
@@ -28,6 +53,7 @@ def call_qa_highres_surface(
             f"{mesh_file}",
             "-o",
             f"{output_file}",
+            # "-v",
         ],
         capture_output=True,
         text=True,
@@ -80,7 +106,7 @@ def call_initial_volumetric_mesher(
             f"{output_file}",
             "-s",
             f"{element_size}",
-            "-v",
+            # "-v",
         ],
         capture_output=True,
         text=True,
@@ -98,7 +124,7 @@ def call_implicit_domain_volumetric_mesh_generator(
     hgrad=DEFAULT_HGRAD,
     hmin=DEFAULT_HMIN,
     hmax=DEFAULT_HMAX,
-    subdomain=DEFAULT_SUBDOMAIN,
+    extract_subdomain=DEFAULT_SUBDOMAIN,
     mem_max=DEFAULT_MEMORY_MAX,
     refine_iterations=DEFAULT_MESH_ITERATIONS,
     debug=None,
@@ -126,13 +152,70 @@ def call_implicit_domain_volumetric_mesh_generator(
             "-hmax",
             f"{hmax}",
             "-sd",
-            f"{subdomain}",
+            f"{extract_subdomain}",
             "-m",
             f"{mem_max}",
             "-iter",
             f"{refine_iterations}",
             # "-d",
             "-v",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout)
+    return result
+
+
+def call_assign_boundary_conditions_manually(
+    mesh_file,
+    output_file,
+):
+    result = subprocess.run(
+        [
+            "conda",
+            "run",
+            "-n",
+            "envMSM_FE",
+            "python",
+            "src/uFE/assign_boundary_conditions_manually.py",
+            "-i",
+            f"{mesh_file}",
+            "-o",
+            f"{output_file}",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout)
+    if "neumann" in result.stdout:
+        return result, True, True
+    elif "dirichlet" in result.stdout and "neumann" not in result.stdout:
+        return result, True, False
+    else:
+        return result, False, False
+
+
+def call_bc_visualizer(
+    mesh_file,
+    dirichlet_file,
+    neumann_file,
+):
+    result = subprocess.run(
+        [
+            "conda",
+            "run",
+            "-n",
+            "envMSM_FE",
+            "python",
+            "src/uFE/bc_visualizer.py",
+            "-i",
+            f"{mesh_file}",
+            "-d",
+            f"{dirichlet_file}",
+            "-n",
+            f"{neumann_file}",
         ],
         capture_output=True,
         text=True,

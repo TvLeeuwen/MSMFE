@@ -80,6 +80,17 @@ def setup_paths():
             "vectors.gif",
         )
 
+    if "vol_path" not in sts or sts.vol_path is None:
+        sts.vol_path = find_file_in_dir(
+            sts.output_path,
+            "extracted.mesh",
+        )
+        if sts.vol_path is None:
+            sts.vol_path = find_file_in_dir(
+                sts.output_path,
+                "volumetric.mesh",
+            )
+
     if "dirichlet_path" not in sts or sts.dirichlet_path is None:
         sts.dirichlet_path = find_file_in_dir(
             sts.output_path,

@@ -16,14 +16,16 @@ from src.MSM.force_vector_extractor import (
     extract_force_vectors,
     extract_model_bone_and_muscle,
 )
-from src.app.app_visuals import click_visual_toi_selector, visual_manual_BC_selector
+from src.app.app_visuals import click_visual_toi_selector
 from src.app.app_FE_calls import (
+    call_surface_remesher,
     call_qa_highres_surface,
     call_initial_volumetric_mesher,
     call_align_moment_of_inertia,
     call_implicit_domain_volumetric_mesh_generator,
+    call_assign_boundary_conditions_manually,
+    call_bc_visualizer,
 )
-
 
 sts = st.session_state
 
@@ -108,14 +110,31 @@ def toi_selector(sto, muscles):
     click_visual_toi_selector(df2)
 
 
-def manual_BC_selector(
-    boi_path,
-    output_base,
+def remesh_surface(
+    mesh_file,
+    output_path,
 ):
-    sts.dirichlet_path, sts.neumann_path = visual_manual_BC_selector(
-        boi_path,
-        output_base,
-    )
+    with st.spinner("Remeshing surface..."):
+        remesh_file = os.path.join(
+            output_path,
+            os.path.splitext("uFE_remeshed_" + os.path.basename(mesh_file))[0] + ".ply",
+        )
+        result = call_surface_remesher(
+            mesh_file,
+            remesh_file,
+        )
+        if result.returncode:
+            return result
+
+        # qa_file = os.path.splitext(remesh_file)[0] + "_qa.ply"
+        # result = call_qa_highres_surface(
+        #     mesh_file,
+        #     qa_file,
+        # )
+        # if result.returncode:
+        #     return result
+
+        return result
 
 
 def generate_volumetric_mesh(
@@ -130,10 +149,9 @@ def generate_volumetric_mesh(
     :param element_size [TODO:type]: [TODO:description]
     """
     with st.spinner("Generating mesh..."):
-
         qa_file = os.path.join(
             output_path,
-            os.path.splitext("uFE_qa_" + os.path.basename(mesh_file))[0] + ".ply",
+            os.path.splitext("uFE_" + os.path.basename(mesh_file))[0] + "_qa.ply",
         )
         result = call_qa_highres_surface(
             mesh_file,
@@ -143,10 +161,6 @@ def generate_volumetric_mesh(
             return result
 
         aligned_file = os.path.splitext(qa_file)[0] + "_aligned.ply"
-        # aligned_file = os.path.join(
-        #     output_path,
-        #     os.path.splitext("uFE_" + os.path.basename(mesh_file))[0] + "_aligned.ply",
-        # )
         result = call_align_moment_of_inertia(
             # mesh_file,
             qa_file,
@@ -165,6 +179,7 @@ def generate_volumetric_mesh(
             return result
 
         volume_file = os.path.splitext(aligned_file)[0] + "_volumetric.mesh"
+        extract_domain = 3
         result = call_implicit_domain_volumetric_mesh_generator(
             initial_file,
             aligned_file,
@@ -173,14 +188,50 @@ def generate_volumetric_mesh(
             hgrad=1.3,
             hmin=1e-2,
             hmax=1e0,
-            subdomain=3,
+            extract_subdomain=extract_domain,
             mem_max=16000,
             refine_iterations=0,
         )
         if result.returncode:
             return result
 
-        return result
+        if extract_domain:
+            volume_file = os.path.splitext(volume_file)[0] + "_extracted.mesh"
+
+        return result, volume_file
+
+
+def manual_BC_selector(
+    vol_path,
+    output_base,
+):
+    with st.spinner("Selecting boundary conditions"):
+        result, dirichlet, neumann = call_assign_boundary_conditions_manually(
+            vol_path,
+            output_base,
+        )
+        sts.dirichlet_path = output_base + "_manual_dirichlet_BC.npy"
+        sts.neumann_path = output_base + "_manual_neumann_BC.npy"
+
+        if result.returncode:
+            st.error("Failed to select boundary conditions")
+            print(result.stderr)
+
+
+def visualize_BCs(
+    mesh_file,
+    dirichlet_file,
+    neumann_file,
+):
+    with st.spinner("Showing boundary conditions"):
+        result = call_bc_visualizer(
+            mesh_file,
+            dirichlet_file,
+            neumann_file,
+        )
+        if result.returncode:
+            st.error("Failed to visualize selected boundary conditions")
+            print(result.stderr)
 
 
 def clear_session_state(item=None):
@@ -189,7 +240,6 @@ def clear_session_state(item=None):
             continue
         elif item == sts[key]:
             del sts[key]
-    st.rerun()
 
 
 def clear_output(file_type="all", file_name=None):
@@ -216,3 +266,4 @@ def clear_output(file_type="all", file_name=None):
                     clear_session_state(file_path)
                 except Exception as e:
                     print(f"Error while removing directory: {e}")
+    st.rerun()

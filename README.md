@@ -50,8 +50,7 @@ Press the `Run MSMFE` button
     pip install pandas pymatreader plotly lxml streamlit pyvista stpyvista imageio
     
     MSM_FE:
-    numpy pyvista tetgen meshio trimesh pymmg pymeshlab
-
+    numpy pyvista tetgen meshio trimesh pymmg pymeshlab open3d
 ### Remove env
     
     conda remove -n envMSMFE --all

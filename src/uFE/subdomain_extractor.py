@@ -125,12 +125,14 @@ def extract_subdomain(
     if visuals:
         extracted_mesh = pv.read(output_file)
 
-        plotter = pv.Plotter()
-        plotter.add_mesh(
+        pl = pv.Plotter()
+        pl.add_mesh(
             extracted_mesh,
             color="white",
+
         )
-        plotter.show()
+        pl.add_axes(interactive=True)
+        pl.show()
 
     print("-- Meshing extraction complete, total time elapsed:")
 

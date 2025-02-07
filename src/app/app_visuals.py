@@ -277,6 +277,7 @@ def visual_manual_BC_selector(
     mesh_path,
     output_base,
 ):
+    surf_select = False
     queue = multiprocessing.Queue()
     process = multiprocessing.Process(
         target=assign_bcs_manually,
@@ -284,6 +285,7 @@ def visual_manual_BC_selector(
             mesh_path,
             output_base,
             queue,
+            surf_select,
         ),
     )
     process.start()

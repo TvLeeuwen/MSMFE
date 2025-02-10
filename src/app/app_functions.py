@@ -1,11 +1,6 @@
-"""Streamlit app function widgets calling src files"""
-
 # Imports ---------------------------------------------------------------------
 import os
-import time
 import shutil
-import subprocess
-import multiprocessing
 import pandas as pd
 import streamlit as st
 from pathlib import Path
@@ -25,6 +20,7 @@ from src.app.app_FE_calls import (
     call_implicit_domain_volumetric_mesh_generator,
     call_assign_boundary_conditions_manually,
     call_bc_visualizer,
+    call_open_cmiss,
 )
 
 sts = st.session_state
@@ -84,7 +80,7 @@ def bone_muscle_extraction(model):
 # Muscle forces ---------------------------------------------------------------
 def force_vector_extraction(model, sto_data, boi, output_path):
     if st.button(f"Extract {boi} force vectors"):
-        with st.spinner("Extracting vectors"):
+        with st.spinner("Extracting vectors..."):
             try:
                 (
                     sts.force_origins_path,
@@ -204,6 +200,8 @@ def generate_volumetric_mesh(
 def manual_BC_selector(
     vol_path,
     output_base,
+    surf_select,
+    txt,
 ):
     with st.spinner("Selecting boundary conditions"):
         if "dirichlet_path" in sts and os.path.isfile(sts.dirichlet_path):
@@ -218,9 +216,16 @@ def manual_BC_selector(
         result, dirichlet, neumann = call_assign_boundary_conditions_manually(
             vol_path,
             output_base,
+            surf_select,
+            txt,
         )
-        sts.dirichlet_path = output_base + "_manual_dirichlet_BC.npy"
-        sts.neumann_path = output_base + "_manual_neumann_BC.npy"
+        if dirichlet:
+            sts.dirichlet_path = output_base + "_manual_dirichlet_BC.npy"
+        if neumann:
+            sts.neumann_path = output_base + "_manual_neumann_BC.npy"
+
+        if not os.path.isfile(sts.dirichlet_path):
+            st.warning("Warning: No BCs were selected")
 
         if result.returncode:
             st.error("Failed to select boundary conditions")
@@ -232,7 +237,7 @@ def visualize_BCs(
     dirichlet_path,
     neumann_path,
 ):
-    with st.spinner("Showing boundary conditions"):
+    with st.spinner("Showing boundary conditions..."):
         dirichlet_file = dirichlet_path if os.path.isfile(dirichlet_path) else None
         if sts.neumann_path is not None:
             neumann_file = neumann_path if os.path.isfile(neumann_path) else None
@@ -246,6 +251,22 @@ def visualize_BCs(
             mesh_file,
             dirichlet_file,
             neumann_file,
+        )
+        if result.returncode:
+            st.error("Failed to visualize selected boundary conditions")
+            print(result.stderr)
+
+
+def run_open_cmiss(
+    mesh_path,
+    dirichlet_path,
+    neumann_path,
+):
+    with st.spinner("Running Finite Element Analysis..."):
+        result = call_open_cmiss(
+            mesh_path,
+            dirichlet_path,
+            neumann_path,
         )
         if result.returncode:
             st.error("Failed to visualize selected boundary conditions")

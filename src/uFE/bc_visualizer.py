@@ -70,21 +70,18 @@ def visualize_BCs(
     pl.add_axes(interactive=True)
 
     if dirichlet_path:
-        mesh_dirichlet = pv.PolyData(np.load(dirichlet_path, allow_pickle=True))
-        print(" - Dirichlet vertex count:", mesh_dirichlet.n_points)
-        pl.add_mesh(mesh_dirichlet.points, color="blue")
+        dirichlet_nodes = np.load(dirichlet_path)
+        print(" - Dirichlet vertex count:", len(dirichlet_nodes))
+        pl.add_mesh(mesh.points[dirichlet_nodes], color="blue")
     if neumann_path:
-        mesh_neumann = pv.PolyData(np.load(neumann_path, allow_pickle=True))
-        print(" - Neumann vertex count:", mesh_neumann.n_points)
-        pl.add_mesh(mesh_neumann.points, color="red")
-    # stpyvista(pl, key="bcs")
+        neumann_nodes = np.load(neumann_path)
+        print(" - Neumann vertex count:", len(neumann_nodes))
+        pl.add_mesh(mesh.points[neumann_nodes], color="red")
     pl.show(auto_close=True)
 
 
 if __name__ == "__main__":
     args = parse_arguments()
-
-    print("Debuf", args.neumann)
 
     visualize_BCs(
         args.input,

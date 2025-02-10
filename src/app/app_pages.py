@@ -16,7 +16,7 @@ from src.app.app_functions import (
     bone_muscle_extraction,
     manual_BC_selector,
     visualize_BCs,
-    remesh_surface,
+    run_open_cmiss,
     generate_volumetric_mesh,
     clear_output,
 )
@@ -25,7 +25,6 @@ from src.app.app_visuals import (
     visual_muscle_data,
     visual_force_vector_gif,
     visual_toi_boi_force_vectors,
-    visual_BCs,
 )
 
 sts = st.session_state
@@ -139,22 +138,22 @@ def page_force_vector():
                 for key, attr in file_mapping.items():
                     for file in files:
                         if sts.boi in file:
-                                if key in file:
-                                    print(file)
-                                    setattr(sts, attr, os.path.join(dirpath, file))
-                                    break
+                            if key in file:
+                                print(file)
+                                setattr(sts, attr, os.path.join(dirpath, file))
+                                break
 
             st.write(sts.dirichlet_path)
             st.write(sts.vol_path)
-                    # if sts.boi in file:
-                    #     if ".gif" in file:
-                    #         sts.gif_path = os.path.join(dirpath, file)
-                    #     elif "origins.json" in file:
-                    #         sts.force_origins_path = os.path.join(dirpath, file)
-                    #     elif "vectors.json" in file:
-                    #         sts.force_vectors_path = os.path.join(dirpath, file)
-                    #     elif "volumetric.mesh" in file:
-                    #         sts.vol_path = os.path.join(dirpath, file)
+            # if sts.boi in file:
+            #     if ".gif" in file:
+            #         sts.gif_path = os.path.join(dirpath, file)
+            #     elif "origins.json" in file:
+            #         sts.force_origins_path = os.path.join(dirpath, file)
+            #     elif "vectors.json" in file:
+            #         sts.force_vectors_path = os.path.join(dirpath, file)
+            #     elif "volumetric.mesh" in file:
+            #         sts.vol_path = os.path.join(dirpath, file)
 
     else:
         st.write("No files uploaded yet. Please upload under :rainbow[input]")
@@ -222,34 +221,35 @@ def page_meshing():
 
     select_mesh_toggle = st.toggle("Mesh OpenSim geometry", value=True)
 
-    if not select_mesh_toggle:
-        st.write("Upload custom geometry")
 
-    if sts.boi is not None and sts.boi_path is not None:
-        # if st.button("Remesh surface mesh"):
-        #     result = remesh_surface(
-        #         sts.boi_path,
-        #         sts.output_path,
-        #     )
-        #     if result.returncode:
-        #         st.error("Failed to remesh")
-        #         print(result.stderr)
+    if select_mesh_toggle:
+        if sts.boi is not None and sts.boi_path is not None:
+            # if st.button("Remesh surface mesh"):
+            #     result = remesh_surface(
+            #         sts.boi_path,
+            #         sts.output_path,
+            #     )
+            #     if result.returncode:
+            #         st.error("Failed to remesh")
+            #         print(result.stderr)
 
-        if st.button(f"Generate {sts.boi} volumetric mesh"):
-            result, sts.vol_path = generate_volumetric_mesh(
-                sts.boi_path,
-                sts.output_path,
-                1,
-            )
-            if result.returncode:
-                st.error("Failed to generate mesh")
-                print(result.stderr)
+            if st.button(f"Generate {sts.boi} volumetric mesh"):
+                result, sts.vol_path = generate_volumetric_mesh(
+                    sts.boi_path,
+                    sts.output_path,
+                    1,
+                )
+                if result.returncode:
+                    st.error("Failed to generate mesh")
+                    print(result.stderr)
 
-        if os.path.exists(sts.vol_path) and sts.boi in sts.vol_path:
-            st.success(f"Volumetric {sts.boi} mesh generated")
+            if os.path.exists(sts.vol_path) and sts.boi in sts.vol_path:
+                st.success(f"Volumetric {sts.boi} mesh generated")
 
+        else:
+            st.write(f"Please select a bone of interest under :rainbow[Muscle forces]")
     else:
-        st.write(f"Please select a bone of interest under :rainbow[Muscle forces]")
+        st.write("Upload custom geometry")
 
 
 def page_BCs():
@@ -294,10 +294,22 @@ def page_BCs():
                 and os.path.exists(sts.vol_path)
                 and sts.boi in sts.vol_path
             ):
+                surf_select = st.toggle(
+                    "Apply BCs to surface only",
+                    value=True,
+                    help="Apply BCs to the surface layer only. Applies volumetric BCs when toggled off.",
+                )
                 if st.button(f"Select BCs on {sts.boi}"):
                     manual_BC_selector(
                         sts.vol_path,
-                        os.path.splitext(sts.osim_path)[0] + "_" + sts.boi,
+                        os.path.join(
+                            sts.output_path,
+                            os.path.splitext(
+                                os.path.basename(sts.osim_path).replace("MSM", "uFE"))[0]
+                            + "_" + sts.boi,
+                        ),
+                        surf_select,
+                        False,  # Debug: True outputs human readable BC .txts
                     )
             else:
                 st.write(
@@ -310,25 +322,32 @@ def page_BCs():
     if sts.dirichlet_path and sts.boi in sts.dirichlet_path:
         st.divider()
         if st.button(f"Show current BCs for {sts.boi}"):
-
             visualize_BCs(
-                    sts.vol_path,
-                    sts.dirichlet_path,
-                    sts.neumann_path,
-                )
+                sts.vol_path,
+                sts.dirichlet_path,
+                sts.neumann_path,
+            )
 
 
 def page_FE():
     st.title("Finite Element")
 
-    if sts.dirichlet_path:
+    if sts.dirichlet_path and os.path.isfile(sts.dirichlet_path):
         if st.button("Show BCs"):
-            visual_BCs(
+            visualize_BCs(
                 sts.vol_path,
                 sts.dirichlet_path,
                 sts.neumann_path,
             )
         st.divider()
+
+        if sts.neumann_path is not None and os.path.isfile(sts.neumann_path):
+            if st.button("Run OpenCMISS"):
+                run_open_cmiss(
+                    sts.vol_path,
+                    sts.dirichlet_path,
+                    sts.neumann_path,
+                )
 
 
 def page_output():

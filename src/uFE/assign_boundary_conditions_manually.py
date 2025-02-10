@@ -148,10 +148,6 @@ def set_bcs(
     dirichlet_selection = pick_bcs(mesh, "Select constrained boundary elements")
     neumann_selection = pick_bcs(mesh, "Select loaded boundary elements")
 
-    if neumann_selection:
-        pass
-
-
     dirichlet_path, neumann_path = write_output(
         output_path,
         dirichlet_selection,
@@ -175,23 +171,23 @@ def write_output(
             neumann_path = output_base + "_manual_neumann_BC.npy"
             np.save(
                 neumann_path,
-                neumann_selection.points,
+                neumann_selection.point_data["vtkOriginalPointIds"],
             )
             if txt:
                 np.savetxt(
                     os.path.splitext(neumann_path)[0] + ".txt",
-                    dirichlet_selection.points,
+                    neumann_selection.point_data["vtkOriginalPointIds"],
                     delimiter=",",
                 )
 
         np.save(
             dirichlet_path,
-            dirichlet_selection.points,
+            dirichlet_selection.point_data["vtkOriginalPointIds"],
         )
         if txt:
             np.savetxt(
                 os.path.splitext(dirichlet_path)[0] + ".txt",
-                dirichlet_selection.points,
+                dirichlet_selection.point_data["vtkOriginalPointIds"],
                 delimiter=",",
             )
         print(f"-- Writing files:")

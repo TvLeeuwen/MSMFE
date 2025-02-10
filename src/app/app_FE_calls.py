@@ -170,21 +170,36 @@ def call_implicit_domain_volumetric_mesh_generator(
 def call_assign_boundary_conditions_manually(
     mesh_file,
     output_file,
+    surf_select=True,
+    txt=False,
 ):
+    command = [
+        "conda",
+        "run",
+        "-n",
+        "envMSM_FE",
+        "python",
+        "src/uFE/assign_boundary_conditions_manually.py",
+        "-i",
+        f"{mesh_file}",
+        "-o",
+        f"{output_file}",
+    ]
+    if surf_select:
+        command.extend(
+            [
+                "-s",
+            ]
+        )
+    if txt:
+        command.extend(
+            [
+                "-t",
+            ]
+        )
+
     result = subprocess.run(
-        [
-            "conda",
-            "run",
-            "-n",
-            "envMSM_FE",
-            "python",
-            "src/uFE/assign_boundary_conditions_manually.py",
-            "-i",
-            f"{mesh_file}",
-            "-o",
-            f"{output_file}",
-            "-s",
-        ],
+        command,
         capture_output=True,
         text=True,
     )
@@ -203,15 +218,15 @@ def call_bc_visualizer(
     neumann_file,
 ):
     command = [
-            "conda",
-            "run",
-            "-n",
-            "envMSM_FE",
-            "python",
-            "src/uFE/bc_visualizer.py",
-            "-i",
-            f"{mesh_file}",
-        ]
+        "conda",
+        "run",
+        "-n",
+        "envMSM_FE",
+        "python",
+        "src/uFE/bc_visualizer.py",
+        "-i",
+        f"{mesh_file}",
+    ]
     if dirichlet_file:
         command.extend(
             [
@@ -229,6 +244,33 @@ def call_bc_visualizer(
 
     result = subprocess.run(
         command,
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout)
+    return result
+
+
+def call_open_cmiss(
+    mesh_path,
+    dirichlet_path,
+    neumann_path,
+):
+    result = subprocess.run(
+        [
+            "conda",
+            "run",
+            "-n",
+            "envMSM_FE",
+            "python",
+            "src/uFE/opencmiss_linear_elasticity.py",
+            "-i",
+            f"{mesh_path}",
+            "-d",
+            f"{dirichlet_path}",
+            "-n",
+            f"{neumann_path}",
+        ],
         capture_output=True,
         text=True,
     )

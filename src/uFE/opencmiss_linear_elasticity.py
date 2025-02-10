@@ -15,16 +15,15 @@ except KeyError:
 
 try:
     import sys
-    import argparse
-    from pathlib import Path
-    import numpy as np
     import meshio
+    import argparse
+    import numpy as np
 
     sys.path.append(
         r"~/OpenCMISS/install/x86_64_linux/intel-C2021.10-intel-F2021.10/ \
     intel_system/lib/python3.10/Release/opencmiss.iron"
     )
-    from opencmiss.iron import iron
+    # from opencmiss.iron import iron
 except ModuleNotFoundError as e:
     sys.exit(f"-- {e}")
 
@@ -52,21 +51,14 @@ def parse_arguments():
         "-i",
         "--input",
         type=str,
-        help="Input path to surface mesh .ply file",
+        help="Input path to .mesh file",
         required=True,
     )
     parser.add_argument(
         "-o",
         "--output",
         type=str,
-        help="Output filename ()",
-        default=None,
-    )
-    parser.add_argument(
-        "-n",
-        "--neumann",
-        type=str,
-        help="Path to Neumann boundary nodes file (.npy) ",
+        help="Output filename .vtk",
         default=None,
     )
     parser.add_argument(
@@ -76,15 +68,22 @@ def parse_arguments():
         help="Path to Dirichlet boundary nodes file (.npy) ",
         default=None,
     )
+    parser.add_argument(
+        "-n",
+        "--neumann",
+        type=str,
+        help="Path to Neumann boundary nodes file (.npy) ",
+        default=None,
+    )
     return parser.parse_args()
 
 
 # Main ------------------------------------------------------------------------
 def calculate_linear_elasticity(
-    input_file: Path,
-    output_file: Path = None,
-    neumann_file: Path = None,
-    dirichlet_file: Path = None,
+    input_file,
+    output_file=None,
+    dirichlet_file=None,
+    neumann_file=None,
 ) -> None:
     """
     Calculate linear elasticity using OpenCMISS
@@ -102,19 +101,12 @@ def calculate_linear_elasticity(
     # -----------------------------------------------------------------------------------------------------------
 
     # Set up defaults files
-
     if output_file is None:
-        output_file = input_file.parents[0] / input_file.name.replace(
-            ".mesh", "_solution.vtk"
-        )
-    if neumann_file is None:
-        neumann_file = input_file.parents[0] / input_file.name.replace(
-            ".mesh", "_neumann_BC.npy"
-        )
+        output_file = os.path.splitext(input_file)[0] + "_solution.vtk"
     if dirichlet_file is None:
-        dirichlet_file = input_file.parents[0] / input_file.name.replace(
-            ".mesh", "_dirichlet_BC.npy"
-        )
+        output_file = os.path.splitext(input_file)[0] + "_dirichlet_BC.npy"
+    if neumann_file is None:
+        output_file = os.path.splitext(input_file)[0] + "_neumann_BC.npy"
 
     # Import mesh data
     mesh = meshio.read(input_file)
@@ -124,8 +116,13 @@ def calculate_linear_elasticity(
 
     eNodes = mesh.cells_dict["tetra"] + 1
     elems = range(1, len(mesh.cells_dict["tetra"]) + 1)
+    triangles = len(mesh.cells_dict["triangle"])
+    lines = len(mesh.cells_dict["line"])
 
-    print(f"-- Mesh loaded: {len(coords)} vertices, {len(elems)} tetrahedra.")
+    print(
+        f"-- Mesh loaded: Vertices: {len(coords)}, Tetrahedra: {len(elems)}.\n"
+        f" - Triangles: {triangles}, Lines: {lines}, Total: {len(elems) + triangles + lines}"
+    )
 
     # Import boundary node data
     try:
@@ -135,9 +132,11 @@ def calculate_linear_elasticity(
         print(e)
     else:
         print(
-            f"-- Boundary nodes loaded: {len(dirichletNodes)} Dirichlet nodes loaded, \
-            {len(neumannNodes)} Neummann nodes loaded"
+            f"-- Boundary nodes loaded:\n - "
+                f"Dirichlet: {len(dirichletNodes)}, Neumann: {len(neumannNodes)}"
         )
+
+    sys.exit()
 
     # -----------------------------------------------------------------------------------------------------------
     # SET PROBLEM PARAMETERS
@@ -845,7 +844,6 @@ def calculate_linear_elasticity(
     nodesList = np.array(nodesList)
     elementsList = np.array(elementsList)
 
-
     ### VTK export
     # Get mesh components
     points = np.array(nodesList[:, 1:4])
@@ -860,7 +858,9 @@ def calculate_linear_elasticity(
         boundaries[dirichlet[0] - 1, 1:] = dirichlet[1:]
     for neumann in neumannNodesBC:
         boundaries[int(neumann[0] - 1), 1:] = neumann[1:]
-    print(f" - Including boundary conditions:\n    - Downward force: {DOWNWARD_FORCE}\n    - Displacement scaled: {SCALE_DISPLACEMENT}")
+    print(
+        f" - Including boundary conditions:\n    - Downward force: {DOWNWARD_FORCE}\n    - Displacement scaled: {SCALE_DISPLACEMENT}"
+    )
 
     # Get solutions
     displacement = nodesList[:, -3:]
@@ -910,9 +910,11 @@ def calculate_linear_elasticity(
     solution_mesh.points = displaced_points
     meshio.write(output_file_displaced, solution_mesh)
 
-    print(f" - Exporting VTK output to {output_file.parents[0]}:\n\
+    print(
+        f" - Exporting VTK output to {output_file.parents[0]}:\n\
     - {output_file.name}\n\
-    - {output_file_displaced.name}")
+    - {output_file_displaced.name}"
+    )
 
     # Finalise OpenCMISS
     iron.Finalise()
@@ -921,7 +923,11 @@ def calculate_linear_elasticity(
 
 
 if __name__ == "__main__":
-
     args = parse_arguments()
 
-    calculate_linear_elasticity(Path(args.input))
+    calculate_linear_elasticity(
+        args.input,
+        args.output,
+        args.dirichlet,
+        args.neumann,
+    )

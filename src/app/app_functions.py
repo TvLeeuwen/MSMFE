@@ -46,7 +46,6 @@ def run_moco(moco_path, osim_path, output_path):
         sts.moco_solution_muscle_fiber_path = os.path.join(
             output_path, str(muscle_fiber_path)
         )
-
     except Exception as e:
         st.error(f"An error occurred: {e}")
         os.chdir(moco_path)

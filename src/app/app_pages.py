@@ -143,8 +143,6 @@ def page_force_vector():
                                 setattr(sts, attr, os.path.join(dirpath, file))
                                 break
 
-            st.write(sts.dirichlet_path)
-            st.write(sts.vol_path)
             # if sts.boi in file:
             #     if ".gif" in file:
             #         sts.gif_path = os.path.join(dirpath, file)
@@ -221,7 +219,6 @@ def page_meshing():
 
     select_mesh_toggle = st.toggle("Mesh OpenSim geometry", value=True)
 
-
     if select_mesh_toggle:
         if sts.boi is not None and sts.boi_path is not None:
             # if st.button("Remesh surface mesh"):
@@ -243,7 +240,11 @@ def page_meshing():
                     st.error("Failed to generate mesh")
                     print(result.stderr)
 
-            if os.path.exists(sts.vol_path) and sts.boi in sts.vol_path:
+            if (
+                sts.vol_path is not None
+                and os.path.exists(sts.vol_path)
+                and sts.boi in sts.vole_path
+            ):
                 st.success(f"Volumetric {sts.boi} mesh generated")
 
         else:
@@ -305,8 +306,10 @@ def page_BCs():
                         os.path.join(
                             sts.output_path,
                             os.path.splitext(
-                                os.path.basename(sts.osim_path).replace("MSM", "uFE"))[0]
-                            + "_" + sts.boi,
+                                os.path.basename(sts.osim_path).replace("MSM", "uFE")
+                            )[0]
+                            + "_"
+                            + sts.boi,
                         ),
                         surf_select,
                         False,  # Debug: True outputs human readable BC .txts

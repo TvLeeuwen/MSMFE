@@ -102,6 +102,8 @@ def setup_paths():
     # Params ------------------------------------------------------------------
     if "boi" not in sts:
         sts.boi = None
+    if "boi_path" not in sts:
+        sts.boi_path = None
     if "toi" not in sts:
         sts.toi = None
 

@@ -3,20 +3,19 @@
 # Imports ---------------------------------------------------------------------
 import os
 import time
-import multiprocessing
-import numpy as np
+import pandas as pd
 import pyvista as pv
-from stpyvista import stpyvista
 import streamlit as st
+import multiprocessing
 import plotly.colors as pc
 import plotly.express as px
+from stpyvista import stpyvista
 import plotly.graph_objects as go
 from streamlit_plotly_events import plotly_events
 
 from pathlib import Path
 from src.MSM.sto_generator import read_input
 from src.MSM.generate_force_vector_gif import generate_vector_gif
-from src.uFE.assign_boundary_conditions_manually import assign_bcs_manually, visualize_BCs
 
 
 # Defs ------------------------------------------------------------------------

@@ -17,12 +17,13 @@ from src.app.app_functions import (
     manual_BC_selector,
     visualize_BCs,
     run_open_cmiss,
+    visualize_opencmiss,
     generate_volumetric_mesh,
     clear_output,
 )
 from src.app.app_visuals import (
-    visual_compare_timeseries,
-    visual_muscle_data,
+    visual_kinematics,
+    visual_dynamics,
     visual_force_vector_gif,
     visual_toi_boi_force_vectors,
 )
@@ -50,8 +51,8 @@ def page_home():
         st.write(sts)
 
 
-def page_track_kinematics():
-    st.title("Kinematic tracking")
+def page_kinematics():
+    st.title("Kinematics")
 
     if (
         sts.osim_path is not None
@@ -78,36 +79,41 @@ def page_track_kinematics():
     else:
         st.write("No files uploaded yet. Please upload under :rainbow[input]")
 
-    # Compare kinematics ------------------------------------------------------
     if (
         sts.kinematics_path is not None
         and os.path.exists(sts.kinematics_path)
         and sts.moco_solution_path is not None
         and os.path.exists(sts.moco_solution_path)
     ):
-        st.subheader("Kinematics: Validate output versus input")
+        st.subheader("Results: validate output versus input")
 
         group_kine = st.toggle("Group kinematics legend", value=True)
-        visual_compare_timeseries(
+        visual_kinematics(
             sts.kinematics_path,
             sts.moco_solution_path,
             group_kine,
         )
 
-    # Validate muscle parameters ----------------------------------------------
-    if sts.moco_solution_muscle_fiber_path is not None and os.path.exists(
-        sts.moco_solution_muscle_fiber_path
-    ):
-        st.subheader("Dynamics: Muscle fiber parameters")
 
+def page_dynamics():
+    if sts.moco_solution_dynamics_path is not None and os.path.exists(
+        sts.moco_solution_dynamics_path
+    ):
+        st.header("Dynamics")
         group_legend = st.toggle("Group dynamics legend", value=True)
-        visual_muscle_data(
-            sts.moco_solution_muscle_fiber_path,
+        visual_dynamics(
+            sts.moco_solution_dynamics_path,
             group_legend,
         )
 
+        st.subheader("Total muscle force")
+    else:
+        st.write(
+            "No dynamics detected. Run track kinematics under :rainbow[Kinematics]"
+        )
 
-def page_force_vector():
+
+def page_boi():
     st.header("Force vector extraction")
 
     if sts.osim_path is not None and os.path.exists(sts.osim_path):
@@ -142,16 +148,6 @@ def page_force_vector():
                                 print(file)
                                 setattr(sts, attr, os.path.join(dirpath, file))
                                 break
-
-            # if sts.boi in file:
-            #     if ".gif" in file:
-            #         sts.gif_path = os.path.join(dirpath, file)
-            #     elif "origins.json" in file:
-            #         sts.force_origins_path = os.path.join(dirpath, file)
-            #     elif "vectors.json" in file:
-            #         sts.force_vectors_path = os.path.join(dirpath, file)
-            #     elif "volumetric.mesh" in file:
-            #         sts.vol_path = os.path.join(dirpath, file)
 
     else:
         st.write("No files uploaded yet. Please upload under :rainbow[input]")
@@ -196,7 +192,7 @@ def page_force_vector():
         if st.button(f"Generate {sts.boi} gif"):
             visual_force_vector_gif(
                 sts.boi_path,
-                sts.moco_solution_muscle_fiber_path,
+                sts.moco_solution_dynamics_path,
                 sts.force_origins_path,
                 sts.force_vectors_path,
                 sts.output_path,
@@ -243,7 +239,7 @@ def page_meshing():
             if (
                 sts.vol_path is not None
                 and os.path.exists(sts.vol_path)
-                and sts.boi in sts.vole_path
+                and sts.boi in sts.vol_path
             ):
                 st.success(f"Volumetric {sts.boi} mesh generated")
 
@@ -260,14 +256,14 @@ def page_BCs():
 
     if select_BC_toggle:
         if sts.boi is not None:
-            if sts.moco_solution_muscle_fiber_path is not None and os.path.exists(
-                sts.moco_solution_muscle_fiber_path
+            if sts.moco_solution_dynamics_path is not None and os.path.exists(
+                sts.moco_solution_dynamics_path
             ):
                 st.subheader(f"Select time of interest - {sts.boi}")
                 muscles = [muscle for muscle in sts.bones_muscle_map[sts.boi]]
 
                 toi_selector(
-                    sts.moco_solution_muscle_fiber_path,
+                    sts.moco_solution_dynamics_path,
                     muscles,
                 )
                 st.write(f"Selected time: {st.session_state.toi}")
@@ -280,7 +276,7 @@ def page_BCs():
             with st.empty():
                 visual_toi_boi_force_vectors(
                     sts.boi_path,
-                    sts.moco_solution_muscle_fiber_path,
+                    sts.moco_solution_dynamics_path,
                     sts.force_origins_path,
                     sts.force_vectors_path,
                     sts.toi,
@@ -351,6 +347,16 @@ def page_FE():
                     sts.dirichlet_path,
                     sts.neumann_path,
                 )
+
+
+def page_viewFE():
+    st.title("Bone Functional Adaptation")
+
+    if st.button("Show results"):
+        visualize_opencmiss(
+            "../BoneOptimisation/BoneOptimisation_67_solution.vtk",
+            "Structure",
+        )
 
 
 def page_output():

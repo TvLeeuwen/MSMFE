@@ -4,15 +4,19 @@ from src.app.app_pages import *
 
 def setup_app():
     pages = {
-        "MSM": [
+        "Home": [
             st.Page(page_home, title="Input"),
-            st.Page(page_track_kinematics, title="Track kinematics"),
-            st.Page(page_force_vector, title="Muscle forces"),
+        ],
+        "MSM": [
+            st.Page(page_kinematics, title="Kinematics"),
+            st.Page(page_dynamics, title="Dynamics"),
         ],
         "FE": [
-            st.Page(page_meshing, title="Volumetric meshing"),
+            st.Page(page_boi, title="Bone of interest"),
+            st.Page(page_meshing, title="Meshing"),
             st.Page(page_BCs, title="Boundary conditions"),
             st.Page(page_FE, title="Finite Element"),
+            st.Page(page_viewFE, title="Result"),
         ],
         "Output": [
             st.Page(page_output, title="Output"),

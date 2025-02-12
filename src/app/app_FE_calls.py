@@ -265,11 +265,35 @@ def call_open_cmiss(
             "python",
             "src/uFE/opencmiss_linear_elasticity.py",
             "-i",
-            f"{mesh_path}",
+            mesh_path,
             "-d",
-            f"{dirichlet_path}",
+            dirichlet_path,
             "-n",
-            f"{neumann_path}",
+            neumann_path,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout)
+    return result
+
+
+def call_visualize_opencmiss(
+    mesh_path,
+    metric,
+):
+    result = subprocess.run(
+        [
+            "conda",
+            "run",
+            "-n",
+            "envMSM_FE",
+            "python",
+            "src/uFE/visualize_opencmiss.py",
+            "-i",
+            mesh_path,
+            "-im",
+            metric,
         ],
         capture_output=True,
         text=True,

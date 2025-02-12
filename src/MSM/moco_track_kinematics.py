@@ -202,6 +202,10 @@ def moco_track_states(
             f"-- Tracking succesful, writing:\n - {str(output_file)}\n - {str(output_file.stem + '_fullstride.sto')}"
         )
 
+    trajectory = osim.MocoTrajectory(solution)
+    print(trajectory.getParameterNames())
+    print("Hello")
+
     # Extract solution muscle fiber data
     muscle_fiber_data = study.analyze(
         solution,
@@ -217,16 +221,22 @@ def moco_track_states(
             r".*activation",
             r".*excitation",
             r".*active_force_length_multiplier",
+            r".*normalized_tendon_force",
+            r".*tendon_force",
+            r".*tendon_length",
+            r".*tendon_strain",
+            r".*tendon_velocity",
+            r".*tendon_power",
         ],
     )
-    muscle_fiber_file = output_file.stem + "_muscle_fiber_data.sto"
-    print(muscle_fiber_file)
+
+    muscle_dynamics_file = output_file.stem + "_muscle_dynamics.sto"
     osim.STOFileAdapter.write(
         muscle_fiber_data,
-        output_file.stem + "_muscle_fiber_data.sto",
+        muscle_dynamics_file,
     )
 
-    return output_file, muscle_fiber_file
+    return output_file, muscle_dynamics_file
 
 
 if __name__ == "__main__":

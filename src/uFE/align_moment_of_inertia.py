@@ -73,7 +73,7 @@ def write_output(input_file: Path, output_file: Path, mesh):
     print(f"-- Writing:\n - {output_file.name}.")
 
 
-def scale_factor(points, target_min=1, target_max=100):
+def scale_factor(points, target_min=10, target_max=200):
     """
     Computes a uniform rescale factor for a point cloud to fit within a target range.
     

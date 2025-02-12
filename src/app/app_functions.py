@@ -21,6 +21,7 @@ from src.app.app_FE_calls import (
     call_assign_boundary_conditions_manually,
     call_bc_visualizer,
     call_open_cmiss,
+    call_visualize_opencmiss,
 )
 
 sts = st.session_state
@@ -70,13 +71,18 @@ def track_kinematics(moco_path, osim_path, output_path):
     st.success("Tracking succesful!")
 
 
+def extract_total_muscle_force(
+    dynamics_path,
+):
+    pass
+
+
 def bone_muscle_extraction(model):
     bone_muscle_map = extract_model_bone_and_muscle(model)
 
     return bone_muscle_map
 
 
-# Muscle forces ---------------------------------------------------------------
 def force_vector_extraction(model, sto_data, boi, output_path):
     if st.button(f"Extract {boi} force vectors"):
         with st.spinner("Extracting vectors..."):
@@ -154,15 +160,16 @@ def generate_volumetric_mesh(
         )
         if result.returncode:
             return result
+        st.warning("Surface mesh quality assessment complete..")
 
         aligned_file = os.path.splitext(qa_file)[0] + "_aligned.ply"
         result = call_align_moment_of_inertia(
-            # mesh_file,
             qa_file,
             aligned_file,
         )
         if result.returncode:
             return result
+        st.warning("Surface mesh aligment complete..")
 
         initial_file = os.path.splitext(aligned_file)[0] + "_initial.mesh"
         result = call_initial_volumetric_mesher(
@@ -172,6 +179,7 @@ def generate_volumetric_mesh(
         )
         if result.returncode:
             return result
+        st.warning("Initial volumetric mesh complete..")
 
         volume_file = os.path.splitext(aligned_file)[0] + "_volumetric.mesh"
         extract_domain = 3
@@ -203,7 +211,11 @@ def manual_BC_selector(
     txt,
 ):
     with st.spinner("Selecting boundary conditions"):
-        if "dirichlet_path" in sts and os.path.isfile(sts.dirichlet_path):
+        if (
+            "dirichlet_path" in sts
+            and sts.dirichlet_path is not None
+            and os.path.isfile(sts.dirichlet_path)
+        ):
             os.unlink(sts.dirichlet_path)
         if (
             "neumann_path" in sts
@@ -268,7 +280,21 @@ def run_open_cmiss(
             neumann_path,
         )
         if result.returncode:
-            st.error("Failed to visualize selected boundary conditions")
+            st.error("Failed run OpenCMISS")
+            print(result.stderr)
+
+
+def visualize_opencmiss(
+    result_path,
+    metric,
+):
+    with st.spinner("Viewing output..."):
+        result = call_visualize_opencmiss(
+            result_path,
+            metric,
+        )
+        if result.returncode:
+            st.error("Failed to visualize OpenCMISS results")
             print(result.stderr)
 
 

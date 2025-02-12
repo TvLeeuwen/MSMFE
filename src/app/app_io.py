@@ -54,12 +54,12 @@ def setup_paths():
         )
 
     if (
-        "moco_solution_muscle_fiber_path" not in sts
-        or sts.moco_solution_muscle_fiber_path is None
+        "moco_solution_dynamics_path" not in sts
+        or sts.moco_solution_dynamics_path is None
     ):
-        sts.moco_solution_muscle_fiber_path = find_file_in_dir(
+        sts.moco_solution_dynamics_path = find_file_in_dir(
             sts.output_path,
-            "muscle_fiber_data.sto",
+            "muscle_dynamics.sto",
         )
 
     if "force_origins_path" not in sts or sts.force_origins_path is None:

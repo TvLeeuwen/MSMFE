@@ -21,60 +21,54 @@ from src.MSM.generate_force_vector_gif import generate_vector_gif
 # Defs ------------------------------------------------------------------------
 def update_fig_layout(fig):
     fig.update_layout(
-        height=1000,
+        height=700,
+        # width=1000,
         xaxis_title="Time (s)",
         yaxis_title="Value",
         legend_title="Variables",
         hovermode="x unified",
         legend=dict(
-            orientation="v",
-            yanchor="top",
-            y=-0.1,
-            xanchor="right",
-            x=0.5,
+            orientation="h",
+            yanchor="bottom",
+            y=1,
+            xanchor="left",
+            x=0,
             itemsizing="constant",
             traceorder="grouped",
         ),
     )
 
 
-def visual_compare_timeseries(sto1, sto2, group_legend):
-    df, _ = read_input(sto1)
+def visual_kinematics(sto1, sto2, group_legend):
+    """
+    Plot kinematics to compare Moco track performance between input and output
+
+    :param sto1 [TODO:type]: [TODO:description]
+    :param sto2 [TODO:type]: [TODO:description]
+    :param group_legend bool: [TODO:description]
+    """
+    df1, _ = read_input(sto1)
     df2, _ = read_input(sto2)
 
     fig = go.Figure()
 
     color_scale = [hex[1] for hex in pc.get_colorscale("Viridis")]
 
-    for column in df.columns:
-        if column != "time":
-            legend = column if group_legend else f"Input: {column}"
-            fig.add_trace(
-                go.Scatter(
-                    x=df.index,
-                    y=df[column],
-                    mode="lines",
-                    line=dict(color=color_scale[2]),
-                    name=f"Input: {column}",
-                    legendgroup=legend,
-                    hovertext=f"{column.split('/')[-2]}: {column.split('/')[-1]}",
+    for i, (df, dataset) in enumerate(zip([df1, df2], ["Input", "Output"])):
+        for column in df.columns:
+            if column != "time" and "jointset" in column:
+                legend = column if group_legend else f"{dataset}: {column}"
+                fig.add_trace(
+                    go.Scatter(
+                        x=df.index,
+                        y=df[column],
+                        mode="lines",
+                        line=dict(color=color_scale[2 + i*4]),
+                        name=f"{dataset}: {column.split('/')[-2]}: {column.split('/')[-1]}",
+                        legendgroup=legend,
+                        hovertext=f"{column.split('/')[-2]}: {column.split('/')[-1]}",
+                    )
                 )
-            )
-
-    for column in df2.columns:
-        if column != "time":
-            legend = column if group_legend else f"Output: {column}"
-            fig.add_trace(
-                go.Scatter(
-                    x=df2.index,
-                    y=df2[column],
-                    mode="lines",
-                    line=dict(color=color_scale[-3]),
-                    name=f"Output: {column}",
-                    legendgroup=legend,
-                    hovertext=f"{column.split('/')[-2]}: {column.split('/')[-1]}",
-                )
-            )
 
     update_fig_layout(fig)
 
@@ -84,7 +78,7 @@ def visual_compare_timeseries(sto1, sto2, group_legend):
     )
 
 
-def visual_muscle_data(sto1, group_legend=False):
+def visual_dynamics(sto1, group_legend=False):
     df, _ = read_input(sto1)
 
     # Required for a consistent color index
@@ -108,9 +102,8 @@ def visual_muscle_data(sto1, group_legend=False):
                     y=df[column],
                     mode="lines",
                     line=dict(color=color_map[muscle]),
-                    name=column,
+                    name=f"{column.split('/')[-1]}",
                     legendgroup=state_name,
-                    hovertext=column.split('/')[-1],
                 )
             )
     update_fig_layout(fig)

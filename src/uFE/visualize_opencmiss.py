@@ -44,13 +44,13 @@ def parse_arguments():
         help="Path/to/mesh to be visualized",
         required=True,
     )
-    metric_choices = ["displacement"]
+    # metric_choices = ["displacement"]
     parser.add_argument(
         "-im",
         "--imetric",
         help="Output metric to be visualized on the resulting mesh",
-        type=str_lowercase,
-        choices=metric_choices,
+        # type=str_lowercase,
+        # choices=metric_choices,
         default=None,
     )
     parser.add_argument(
@@ -63,8 +63,8 @@ def parse_arguments():
         "-cm",
         "--cmetric",
         help="Output metric to be visualized on the comparing mesh",
-        type=str_lowercase,
-        choices=metric_choices,
+        # type=str_lowercase,
+        # choices=metric_choices,
         default=None,
     )
 

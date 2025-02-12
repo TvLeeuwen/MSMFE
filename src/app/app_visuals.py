@@ -57,6 +57,7 @@ def visual_compare_timeseries(sto1, sto2, group_legend):
                     line=dict(color=color_scale[2]),
                     name=f"Input: {column}",
                     legendgroup=legend,
+                    hovertext=f"{column.split('/')[-2]}: {column.split('/')[-1]}",
                 )
             )
 
@@ -71,6 +72,7 @@ def visual_compare_timeseries(sto1, sto2, group_legend):
                     line=dict(color=color_scale[-3]),
                     name=f"Output: {column}",
                     legendgroup=legend,
+                    hovertext=f"{column.split('/')[-2]}: {column.split('/')[-1]}",
                 )
             )
 
@@ -108,6 +110,7 @@ def visual_muscle_data(sto1, group_legend=False):
                     line=dict(color=color_map[muscle]),
                     name=column,
                     legendgroup=state_name,
+                    hovertext=column.split('/')[-1],
                 )
             )
     update_fig_layout(fig)

@@ -78,23 +78,43 @@ def visual_kinematics(sto1, sto2, group_legend):
     )
 
 
-def visual_dynamics(sto1, group_legend=False):
-    df, _ = read_input(sto1)
+def visual_dynamics(dynamics_path, group_legend=False, color_map=None):
 
-    # Required for a consistent color index
-    columns = set()
-    for column in df.columns:
-        if column != "time":
-            columns.add(column.split("|")[0])
-    colors = px.colors.sample_colorscale(
-        "viridis", [n / (len(columns) - 1) for n in range(len(columns))]
-    )
-    color_map = {col: colors[i] for i, col in enumerate(columns)}
+    if os.path.splitext(dynamics_path)[1] == ".sto":
+        df, _ = read_input(dynamics_path)
+    elif os.path.splitext(dynamics_path)[1] == ".json":
+        df = pd.read_json(dynamics_path, orient="records", lines=True)
+    else:
+        print("Input file for dynamics visualisation not recognized, use .sto or .json")
+        return
+
+    r=False
+    if not color_map:
+        # Required for a consistent color index
+        columns = set()
+        for column in df.columns:
+            if column != "time":
+                columns.add(column.split("|")[0])
+        colors = px.colors.sample_colorscale(
+            "viridis", [n / (len(columns) - 1) for n in range(len(columns))]
+        )
+        color_map = {col: colors[i] for i, col in enumerate(columns)}
+        r=True
+    else:
+        new_color_map = {}
+        for col in df.columns:
+            muscle = col.split("|")[0]
+            for key, value in color_map.items():
+                if muscle in key:
+                    new_color_map[muscle] = value
+        color_map = new_color_map
+
 
     fig = go.Figure()
     for column in df.columns:
         if column != "time":
             state_name = column.split("|")[1] if group_legend else column
+            name=column.split('/')[-1]
             muscle = column.split("|")[0]
             fig.add_trace(
                 go.Scatter(
@@ -112,6 +132,9 @@ def visual_dynamics(sto1, group_legend=False):
         fig,
         use_container_width=True,
     )
+
+    if r:
+        return color_map
 
 
 def visual_force_vector_gif(

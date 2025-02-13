@@ -62,6 +62,15 @@ def setup_paths():
             "muscle_dynamics.sto",
         )
 
+    if (
+        "muscle_forces_path" not in sts
+        or sts.muscle_forces_path is None
+    ):
+        sts.muscle_forces_path = find_file_in_dir(
+            sts.output_path,
+            "muscle_forces.json",
+        )
+
     if "force_origins_path" not in sts or sts.force_origins_path is None:
         sts.force_origins_path = find_file_in_dir(
             sts.output_path,

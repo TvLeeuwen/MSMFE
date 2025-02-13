@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 from pathlib import Path
 
-from src.MSM.sto_generator import generate_sto, read_input
+from src.MSM.sto_generator import generate_sto, read_input, write_columns
 from src.MSM.moco_track_kinematics import moco_track_states
 from src.MSM.force_vector_extractor import (
     extract_force_vectors,
@@ -28,30 +28,6 @@ sts = st.session_state
 
 
 # Defs ------------------------------------------------------------------------
-def run_moco(moco_path, osim_path, output_path):
-    try:
-        os.chdir(output_path)
-        filter_params = {
-            "state_filters": ["jointset"],
-            "invert_filter": False,
-        }
-        solution_path, muscle_fiber_path = moco_track_states(
-            Path(osim_path),
-            Path(sts.kinematics_path),
-            filter_params,
-        )
-        os.chdir(moco_path)
-
-        sts.moco_solution_path = os.path.join(output_path, str(solution_path))
-
-        sts.moco_solution_muscle_fiber_path = os.path.join(
-            output_path, str(muscle_fiber_path)
-        )
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-        os.chdir(moco_path)
-
-
 def generate_kinematics(osim_path, kine_path, output_path):
     kinematics_path = generate_sto(
         Path(kine_path),
@@ -71,10 +47,56 @@ def track_kinematics(moco_path, osim_path, output_path):
     st.success("Tracking succesful!")
 
 
-def extract_total_muscle_force(
+def run_moco(moco_path, osim_path, output_path):
+    try:
+        os.chdir(output_path)
+        filter_params = {
+            "state_filters": ["jointset"],
+            "invert_filter": False,
+        }
+        solution_path, muscle_dynamics_path = moco_track_states(
+            Path(osim_path),
+            Path(sts.kinematics_path),
+            filter_params,
+        )
+        os.chdir(moco_path)
+
+        sts.moco_solution_path = os.path.join(output_path, str(solution_path))
+
+        sts.moco_solution_dynamics_path = os.path.join(
+            output_path, str(muscle_dynamics_path)
+        )
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        os.chdir(moco_path)
+
+
+def calculate_total_muscle_force(
     dynamics_path,
 ):
-    pass
+    df, _ = read_input(dynamics_path)
+
+    muscles = list(
+        set(
+            [key.split("|")[0].split("/")[-1] for key in df.keys() if "time" not in key]
+        )
+    )
+
+    df2 = pd.DataFrame(0, index=range(len(df["time"])), columns=["time"])
+    df2["time"] = df["time"]
+    for muscle in muscles:
+        df2[f"{muscle}|total_muscle_force"] = (
+            df[f"/forceset/{muscle}|active_fiber_force"]
+            + df[f"/forceset/{muscle}|passive_fiber_force"]
+            + df[f"/forceset/{muscle}|tendon_force"]
+        )
+
+    muscle_forces_path = dynamics_path.replace("dynamics.sto", "forces.json")
+    pd.DataFrame(df2).to_json(
+        muscle_forces_path, orient="records", lines=True
+    )
+
+    return muscle_forces_path
 
 
 def bone_muscle_extraction(model):

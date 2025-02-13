@@ -12,6 +12,7 @@ from src.app.app_functions import (
     generate_kinematics,
     track_kinematics,
     force_vector_extraction,
+    calculate_total_muscle_force,
     toi_selector,
     bone_muscle_extraction,
     manual_BC_selector,
@@ -96,17 +97,33 @@ def page_kinematics():
 
 
 def page_dynamics():
+
+    st.header("Dynamics")
+
     if sts.moco_solution_dynamics_path is not None and os.path.exists(
         sts.moco_solution_dynamics_path
     ):
-        st.header("Dynamics")
         group_legend = st.toggle("Group dynamics legend", value=True)
-        visual_dynamics(
+        color_map = visual_dynamics(
             sts.moco_solution_dynamics_path,
             group_legend,
         )
-
         st.subheader("Total muscle force")
+        if st.button("Calculate total muscle force"):
+            sts.muscle_forces_path = calculate_total_muscle_force(
+                sts.moco_solution_dynamics_path,
+            )
+
+    if sts.muscle_forces_path is not None and os.path.exists(
+        sts.muscle_forces_path
+    ):
+        visual_dynamics(
+                sts.muscle_forces_path,
+                color_map=color_map,
+        )
+
+
+
     else:
         st.write(
             "No dynamics detected. Run track kinematics under :rainbow[Kinematics]"

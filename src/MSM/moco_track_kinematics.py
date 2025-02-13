@@ -207,7 +207,7 @@ def moco_track_states(
     print("Hello")
 
     # Extract solution muscle fiber data
-    muscle_fiber_data = study.analyze(
+    muscle_dynamics_data = study.analyze(
         solution,
         [
             r".*active_fiber_force",
@@ -232,7 +232,7 @@ def moco_track_states(
 
     muscle_dynamics_file = output_file.stem + "_muscle_dynamics.sto"
     osim.STOFileAdapter.write(
-        muscle_fiber_data,
+        muscle_dynamics_data,
         muscle_dynamics_file,
     )
 

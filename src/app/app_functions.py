@@ -2,6 +2,7 @@
 import os
 import shutil
 import pandas as pd
+import pyvista as pv
 import streamlit as st
 from pathlib import Path
 
@@ -92,9 +93,7 @@ def calculate_total_muscle_force(
         )
 
     muscle_forces_path = dynamics_path.replace("dynamics.sto", "forces.json")
-    pd.DataFrame(df2).to_json(
-        muscle_forces_path, orient="records", lines=True
-    )
+    pd.DataFrame(df2).to_json(muscle_forces_path, orient="records", lines=True)
 
     return muscle_forces_path
 
@@ -307,17 +306,35 @@ def run_open_cmiss(
 
 
 def visualize_opencmiss(
-    result_path,
-    metric,
+    result_dir,
+    # metric,
 ):
-    with st.spinner("Viewing output..."):
-        result = call_visualize_opencmiss(
-            result_path,
-            metric,
-        )
-        if result.returncode:
-            st.error("Failed to visualize OpenCMISS results")
-            print(result.stderr)
+    plot = st.toggle("Autoplot on select", value=False)
+
+    files = [file for file in os.listdir(result_dir)]
+    iter = st.slider("Select output iteration", 0, len(files), 0)
+    result_path = os.path.join(
+        result_dir,
+        f"BoneOptimisation_{iter}_solution.vtk",
+    )
+
+    mesh = pv.read(result_path)
+    scalars = list(mesh.cell_data.keys())
+    metric = st.radio(
+        "Visualize:",
+        scalars,
+    )
+
+    if plot or st.button("Show"):
+        if metric:
+            with st.spinner("Viewing output..."):
+                result = call_visualize_opencmiss(
+                    result_path,
+                    metric,
+                )
+                if result.returncode:
+                    st.error("Failed to visualize OpenCMISS results")
+                    print(result.stderr)
 
 
 def clear_session_state(item=None):

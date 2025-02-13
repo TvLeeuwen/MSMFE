@@ -15,9 +15,10 @@ Visualize OpenCMISS results by calling `visualize_OpenCMISS_results()`
 """
 
 ### Imports --------------------------------------------------------------------
+import os
+import sys
 import argparse
 from pathlib import Path
-import sys
 import pyvista as pv
 
 
@@ -96,27 +97,31 @@ def visualize_OpenCMISS_results(
     @returns: Void
     @outputs: Visual plot of modelled object with chosen metric colormap
     """
+    mesh = pv.read(result_file)
+    mesh = mesh.threshold(value=1, scalars="Structure", invert=False)
 
-    plotter = pv.Plotter()
-
-    result_mesh = pv.read(result_file)
-    plotter.add_mesh(
-        result_mesh,
+    pl = pv.Plotter()
+    pl.add_text(os.path.basename(result_file))
+    pl.add_mesh(
+        mesh,
         color="white",
         lighting=True,
         scalars=result_metric,
-        cmap="coolwarm",
+        cmap="reds",
     )
+    pl.view_xz()
+    pl.camera.up = (0, 0, -1)
+
     if initial_file:
         initial_mesh = pv.read(initial_file)
-        plotter.add_mesh(
+        pl.add_mesh(
             initial_mesh,
             color="white",
             lighting=True,
             scalars=initial_metric,
             cmap="coolwarm",
         )
-    plotter.show()
+    pl.show()
 
 
 ### Main -----------------------------------------------------------------------

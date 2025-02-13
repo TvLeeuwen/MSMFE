@@ -369,11 +369,9 @@ def page_FE():
 def page_viewFE():
     st.title("Bone Functional Adaptation")
 
-    if st.button("Show results"):
-        visualize_opencmiss(
-            "../BoneOptimisation/BoneOptimisation_67_solution.vtk",
-            "Structure",
-        )
+    visualize_opencmiss(
+        "../BoneOptimisation/",
+    )
 
 
 def page_output():

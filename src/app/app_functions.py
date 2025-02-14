@@ -313,17 +313,20 @@ def visualize_opencmiss(
 
     files = [file for file in os.listdir(result_dir)]
     iter = st.slider("Select output iteration", 0, len(files), 0)
-    result_path = os.path.join(
-        result_dir,
-        f"BoneOptimisation_{iter}_solution.vtk",
-    )
+    # result_path = os.path.join(
+    #     result_dir,
+    #     # f"BoneOptimisation_{iter}_solution.vtk",
+    #     f"BoneOptimisation_16_solution_{iter}.vtk",
+    # )
+    result_path = result_dir
 
-    mesh = pv.read(result_path)
-    scalars = list(mesh.cell_data.keys())
-    metric = st.radio(
-        "Visualize:",
-        scalars,
-    )
+    # mesh = pv.read(result_path)
+    # scalars = list(mesh.cell_data.keys())
+    # metric = st.radio(
+    #     "Visualize:",
+    #     scalars,
+    # )
+    metric = "Structure"
 
     if plot or st.button("Show"):
         if metric:

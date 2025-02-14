@@ -17,6 +17,7 @@ Visualize OpenCMISS results by calling `visualize_OpenCMISS_results()`
 ### Imports --------------------------------------------------------------------
 import os
 import sys
+import glob
 import argparse
 from pathlib import Path
 import pyvista as pv
@@ -97,30 +98,60 @@ def visualize_OpenCMISS_results(
     @returns: Void
     @outputs: Visual plot of modelled object with chosen metric colormap
     """
-    mesh = pv.read(result_file)
-    mesh = mesh.threshold(value=1, scalars="Structure", invert=False)
+
+    vtk_files = sorted(glob.glob(f"{result_file}/*.vtk"))  # Adjust the path
+
+    multi_block = pv.MultiBlock()
+
+    for i, vtk_file in enumerate(vtk_files):
+        mesh = pv.read(vtk_file)
+        multi_block.append(mesh)  # Add to MultiBlock
+
+        # Optionally, name each block (e.g., using the filename)
+        multi_block.set_block_name(i, vtk_file.split("/")[-1])
+
+    # -------------------------------------------------------------------------
+
+    # mesh = pv.read(result_file)
+    # mesh = mesh.threshold(value=1, scalars="Structure", invert=False)
 
     pl = pv.Plotter()
-    pl.add_text(os.path.basename(result_file))
-    pl.add_mesh(
-        mesh,
-        color="white",
-        lighting=True,
-        scalars=result_metric,
-        cmap="reds",
-    )
+    # pl.add_text(os.path.basename(result_file))
+    pl.add_text(vtk_files[-1])
+    for i, block in enumerate(multi_block):
+        if isinstance(block, pv.DataSet):
+            half_mesh = block.clip('y',
+                                   crinkle=True,)
+            thresholded = half_mesh.threshold(
+                value=1,
+                scalars="Structure",
+                invert=False,
+            )
+            pl.add_mesh(
+                thresholded,
+                scalars="Structure",
+                cmap="reds",
+            )
     pl.view_xz()
     pl.camera.up = (0, 0, -1)
 
-    if initial_file:
-        initial_mesh = pv.read(initial_file)
-        pl.add_mesh(
-            initial_mesh,
-            color="white",
-            lighting=True,
-            scalars=initial_metric,
-            cmap="coolwarm",
-        )
+    # pl.add_mesh(
+    #     mesh,
+    #     color="white",
+    #     lighting=True,
+    #     scalars=result_metric,
+    #     cmap="reds",
+    # )
+
+    # if initial_file:
+    #     initial_mesh = pv.read(initial_file)
+    #     pl.add_mesh(
+    #         initial_mesh,
+    #         color="white",
+    #         lighting=True,
+    #         scalars=initial_metric,
+    #         cmap="coolwarm",
+    #     )
     pl.show()
 
 

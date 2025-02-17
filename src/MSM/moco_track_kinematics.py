@@ -202,9 +202,6 @@ def moco_track_states(
             f"-- Tracking succesful, writing:\n - {str(output_file)}\n - {str(output_file.stem + '_fullstride.sto')}"
         )
 
-    trajectory = osim.MocoTrajectory(solution)
-    print(trajectory.getParameterNames())
-    print("Hello")
 
     # Extract solution muscle fiber data
     muscle_dynamics_data = study.analyze(

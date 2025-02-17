@@ -370,7 +370,8 @@ def page_viewFE():
     st.title("Bone Functional Adaptation")
 
     visualize_opencmiss(
-        "../BoneOptimisation/second",
+        # "../BoneOptimisation/second",
+        "../BoneOptimisation/all",
     )
 
 

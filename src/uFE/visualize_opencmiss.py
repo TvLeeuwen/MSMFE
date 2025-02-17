@@ -53,7 +53,7 @@ def parse_arguments():
         help="Output metric to be visualized on the resulting mesh",
         # type=str_lowercase,
         # choices=metric_choices,
-        default=None,
+        default="Structure",
     )
     parser.add_argument(
         "-c",
@@ -99,29 +99,50 @@ def visualize_OpenCMISS_results(
     @outputs: Visual plot of modelled object with chosen metric colormap
     """
 
-    vtk_files = sorted(glob.glob(f"{result_file}/*.vtk"))  # Adjust the path
+
+    input_files = sorted(glob.glob(f"{result_file}*.vtK"))  # Adjust the path
+    compare_files = sorted(glob.glob(f"{initial_file}*.vtK"))  # Adjust the path
 
     multi_block = pv.MultiBlock()
+    compare_multi_block = pv.MultiBlock()
 
-    for i, vtk_file in enumerate(vtk_files):
-        mesh = pv.read(vtk_file)
+    
+    for i, block_file in enumerate(input_files):
+        mesh = pv.read(block_file)
+        # print(mesh.point_cell_ids)
+        # print(mesh.n_cells)
         multi_block.append(mesh)  # Add to MultiBlock
 
         # Optionally, name each block (e.g., using the filename)
-        multi_block.set_block_name(i, vtk_file.split("/")[-1])
+        multi_block.set_block_name(i, block_file.split("/")[-1])
+
+    for i, block_file in enumerate(compare_files):
+        mesh = pv.read(block_file)
+        # print(mesh.point_cell_ids)
+        # print(mesh.n_cells)
+        compare_multi_block.append(mesh)  # Add to MultiBlock
+
+        # Optionally, name each block (e.g., using the filename)
+        multi_block.set_block_name(i, block_file.split("/")[-1])
+
+    # multi_block.plot()
 
     # -------------------------------------------------------------------------
 
     # mesh = pv.read(result_file)
     # mesh = mesh.threshold(value=1, scalars="Structure", invert=False)
 
+    # color = "bone"
+    color = "bone_r"
+    # color = "Pastel1"
+
     pl = pv.Plotter()
     # pl.add_text(os.path.basename(result_file))
-    pl.add_text(vtk_files[-1])
+    pl.add_text(input_files[-1])
     for i, block in enumerate(multi_block):
         if isinstance(block, pv.DataSet):
             half_mesh = block.clip('y',
-                                   crinkle=True,)
+                                   crinkle=False,)
             thresholded = half_mesh.threshold(
                 value=1,
                 scalars="Structure",
@@ -129,10 +150,29 @@ def visualize_OpenCMISS_results(
             )
             pl.add_mesh(
                 thresholded,
-                scalars="Structure",
-                cmap="reds",
+                scalars=result_metric,
+                cmap=color,
             )
+
+    for i, compare_block in enumerate(compare_multi_block):
+        if isinstance(compare_block, pv.DataSet):
+            compare_surface = compare_block.extract_surface()
+            compare_half = compare_surface.clip('y',
+                                   crinkle=False,)
+            compare_thresh = compare_half.threshold(
+                value=1,
+                scalars="Structure",
+                invert=False,
+            )
+            pl.add_mesh(
+                compare_thresh,
+                scalars=result_metric,
+                cmap=color,
+            )
+
     pl.view_xz()
+    pl.add_axes(interactive=True)
+    pl.remove_scalar_bar()
     pl.camera.up = (0, 0, -1)
 
     # pl.add_mesh(

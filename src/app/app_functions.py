@@ -311,22 +311,34 @@ def visualize_opencmiss(
 ):
     plot = st.toggle("Autoplot on select", value=False)
 
-    files = [file for file in os.listdir(result_dir)]
-    iter = st.slider("Select output iteration", 0, len(files), 0)
-    # result_path = os.path.join(
-    #     result_dir,
-    #     # f"BoneOptimisation_{iter}_solution.vtk",
-    #     f"BoneOptimisation_16_solution_{iter}.vtk",
-    # )
-    result_path = result_dir
+    files = [int(file.split("_")[1]) for file in os.listdir(result_dir)]
+    files = sorted(set(files))
 
-    # mesh = pv.read(result_path)
-    # scalars = list(mesh.cell_data.keys())
-    # metric = st.radio(
-    #     "Visualize:",
-    #     scalars,
-    # )
-    metric = "Structure"
+    # iter = st.slider("Select output iteration", 0, len(files), 0)
+    iter = st.radio(
+        "Iteration:",
+        files,
+    )
+
+    result_path = os.path.join(
+        result_dir,
+        f"BoneOptimisation_{iter}_solution",
+        # f"BoneOptimisation_16_solution_{iter}",
+    )
+    initial_path = os.path.join(
+        result_dir,
+        "BoneOptimisation_8_solution",
+    )
+
+    for root, _, files in os.walk(result_dir):
+        mesh = pv.read(os.path.join(result_dir,files[0]))
+
+    scalars = list(mesh.cell_data.keys())
+    metric = st.radio(
+        "Visualize:",
+        scalars,
+    )
+    # metric = "Structure"
 
     if plot or st.button("Show"):
         if metric:
@@ -334,6 +346,7 @@ def visualize_opencmiss(
                 result = call_visualize_opencmiss(
                     result_path,
                     metric,
+                    initial_path,
                 )
                 if result.returncode:
                     st.error("Failed to visualize OpenCMISS results")

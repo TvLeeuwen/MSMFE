@@ -281,20 +281,29 @@ def call_open_cmiss(
 def call_visualize_opencmiss(
     mesh_path,
     metric,
+    initial_path=None,
 ):
+    command = [
+        "conda",
+        "run",
+        "-n",
+        "envMSM_FE",
+        "python",
+        "src/uFE/visualize_opencmiss.py",
+        "-i",
+        mesh_path,
+        "-im",
+        metric,
+    ]
+    if initial_path:
+        command.extend(
+            [
+                "-c",
+                initial_path,
+            ]
+        )
     result = subprocess.run(
-        [
-            "conda",
-            "run",
-            "-n",
-            "envMSM_FE",
-            "python",
-            "src/uFE/visualize_opencmiss.py",
-            "-i",
-            mesh_path,
-            "-im",
-            metric,
-        ],
+        command,
         capture_output=True,
         text=True,
     )

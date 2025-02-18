@@ -51,7 +51,13 @@ def parse_arguments():
         "--surf",
         type=str,
         help="Path to surface mesh .ply file",
-        required=True,
+    )
+    parser.add_argument(
+        "-m",
+        "--metric",
+        type=str,
+        help="Metric used for implicit boundary meshing, default='implicit_distance'",
+        default="implicit_distance",
     )
     parser.add_argument(
         "-o",
@@ -97,7 +103,7 @@ def parse_arguments():
         default=DEFAULT_SUBDOMAIN,
     )
     parser.add_argument(
-        "-m",
+        "-mm",
         "--mem",
         type=int,
         help=f"Maximum memory size for mesh adaptation in MBs - default: {DEFAULT_MEMORY_MAX}",
@@ -126,16 +132,10 @@ def parse_arguments():
 
 
 # Defs ------------------------------------------------------------------------
-def handle_args_none_ouput_file(input_file: Path, output_file: Path | None = None):
-    if output_file is None:
-        output_file = input_file.with_name(
-            input_file.name.replace("initial", "adapted")
-        )
-
-    return output_file
-
-
-def handle_args_none_ouput_file(input_file: Path, output_file: Path | None = None):
+def handle_args_none_output_file(
+    input_file: Path,
+    output_file: Path | None = None,
+):
     if output_file is None:
         output_file = input_file.with_name(
             input_file.name.replace("initial", "adapted")
@@ -233,6 +233,7 @@ def generate_implicit_domain_volumetric_mesh(
     input_file: Path,
     surf_file: Path,
     output_file: Path | None = None,
+    metric: str = "implicit_distance",
     hausd: float = DEFAULT_HAUSD,
     hgrad: float = DEFAULT_HGRAD,
     hmin: float = DEFAULT_HMIN,
@@ -248,7 +249,7 @@ def generate_implicit_domain_volumetric_mesh(
     print(f" - {input_file.name}\n - {surf_file.name}")
 
     for iter in range(0, refine_iterations + 1):
-        output_file = handle_args_none_ouput_file(input_file, output_file)
+        output_file = handle_args_none_output_file(input_file, output_file)
         input_file, output_file = handle_iterative(input_file, output_file, iter)
 
         mesh = pv.read(input_file)
@@ -264,28 +265,33 @@ def generate_implicit_domain_volumetric_mesh(
             cell_center = mesh.points[cells].mean(1)
             cutting_plane = 2
             half = np.mean(
-                [surf.bounds[cutting_plane * 2],
-                 surf.bounds[(cutting_plane * 2) + 1]]
+                [surf.bounds[cutting_plane * 2], surf.bounds[(cutting_plane * 2) + 1]]
             )
             mask = cell_center[:, cutting_plane] < half
             cell_ind = mask.nonzero()[0]
 
-        print("-- Computing signed distances")
-        mesh.compute_implicit_distance(surf, inplace=True)
-        signed_distances = mesh["implicit_distance"]
+        if metric == "implicit_distance":
+            print("-- Computing signed distances")
+            mesh.compute_implicit_distance(surf, inplace=True)
+
 
         if visuals:
             subgrid = mesh.extract_cells(cell_ind)
 
             plotter = pv.Plotter()
-            plotter.add_mesh(subgrid,
-                             show_edges=True,
-                             scalars="implicit_distance",
-                             cmap="coolwarm",
-                             clim=[-1, 1],
-                             )
-            plotter.add_mesh(surf, lighting=True, color='white', scalars=None)
+            plotter.add_mesh(
+                subgrid,
+                show_edges=True,
+                scalars=metric,
+                cmap="coolwarm",
+                clim=[-1, 1],
+            )
+            if metric == "implicit_distance":
+                plotter.add_mesh(surf, lighting=True, color="white", scalars=None)
+
             plotter.show()
+
+        signed_distances = mesh[metric]
 
         sol_file = generate_sol_file(input_file, signed_distances)
 
@@ -323,6 +329,7 @@ if __name__ == "__main__":
         Path(args.input),
         Path(args.surf),
         output_file,
+        args.metric,
         args.hausd,
         args.hgrad,
         args.hmin,

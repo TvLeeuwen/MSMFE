@@ -120,6 +120,7 @@ def call_implicit_domain_volumetric_mesh_generator(
     mesh_file,
     surf_file,
     output_file,
+    metric="implicit_distance",
     hausd=DEFAULT_HAUSD,
     hgrad=DEFAULT_HGRAD,
     hmin=DEFAULT_HMIN,
@@ -138,11 +139,13 @@ def call_implicit_domain_volumetric_mesh_generator(
             "python",
             "src/uFE/implicit_domain_volumetric_mesh_generator.py",
             "-i",
-            f"{mesh_file}",
+            mesh_file,
             "-s",
-            f"{surf_file}",
+            surf_file,
             "-o",
-            f"{output_file}",
+            output_file,
+            "-m",
+            metric,
             "-hausd",
             f"{hausd}",
             "-hgrad",
@@ -153,7 +156,7 @@ def call_implicit_domain_volumetric_mesh_generator(
             f"{hmax}",
             "-sd",
             f"{extract_subdomain}",
-            "-m",
+            "-mm",
             f"{mem_max}",
             "-iter",
             f"{refine_iterations}",
@@ -270,6 +273,31 @@ def call_open_cmiss(
             dirichlet_path,
             "-n",
             neumann_path,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout)
+    return result
+
+
+def call_combine_opencmiss_multiblock(
+    opencmiss_solution_path,
+    combined_opencmiss_solution_path,
+):
+    result = subprocess.run(
+        [
+            "conda",
+            "run",
+            "-n",
+            "envMSM_FE",
+            "python",
+            "src/uFE/combine_opencmiss_multiblock.py",
+            "-i",
+            opencmiss_solution_path,
+            "-o",
+            combined_opencmiss_solution_path,
+            # "-v"
         ],
         capture_output=True,
         text=True,

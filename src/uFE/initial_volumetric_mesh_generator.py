@@ -20,7 +20,6 @@ import tetgen
 import meshio
 
 sys.path.insert(0, str(Path(__file__).parents[2]))
-print(str(Path(__file__).parents[2]))
 from src.uFE.utils.formatting import print_section, timer
 from src.uFE.utils.handle_args import (
     handle_args_suffix,

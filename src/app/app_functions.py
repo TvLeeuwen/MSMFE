@@ -22,6 +22,7 @@ from src.app.app_FE_calls import (
     call_assign_boundary_conditions_manually,
     call_bc_visualizer,
     call_open_cmiss,
+    call_combine_opencmiss_multiblock,
     call_visualize_opencmiss,
 )
 
@@ -208,6 +209,7 @@ def generate_volumetric_mesh(
             initial_file,
             aligned_file,
             volume_file,
+            metric="implicit_distance",
             hausd=1e0,
             hgrad=1.3,
             hmin=1e-2,
@@ -217,7 +219,7 @@ def generate_volumetric_mesh(
             refine_iterations=0,
         )
         if result.returncode:
-            return result
+            return result, None
 
         if extract_domain:
             volume_file = os.path.splitext(volume_file)[0] + "_extracted.mesh"
@@ -305,12 +307,9 @@ def run_open_cmiss(
             print(result.stderr)
 
 
-def visualize_opencmiss(
+def combine_opencmiss_solution(
     result_dir,
-    # metric,
 ):
-    plot = st.toggle("Autoplot on select", value=False)
-
     files = [int(file.split("_")[1]) for file in os.listdir(result_dir)]
     files = sorted(set(files))
 
@@ -318,39 +317,74 @@ def visualize_opencmiss(
     iter = st.radio(
         "Iteration:",
         files,
+        horizontal=True,
     )
 
-    result_path = os.path.join(
-        result_dir,
-        f"BoneOptimisation_{iter}_solution",
-        # f"BoneOptimisation_16_solution_{iter}",
-    )
-    initial_path = os.path.join(
-        result_dir,
-        "BoneOptimisation_8_solution",
+    opencmiss_solution_name = f"BoneOptimisation_{iter}_solution"
+    sts.combined_opencmiss_solution_path = os.path.join(
+        sts.output_path,
+        f"uFE_{opencmiss_solution_name}_combined.vtu",
     )
 
-    for root, _, files in os.walk(result_dir):
-        mesh = pv.read(os.path.join(result_dir,files[0]))
+    if st.button("Combine"):
+        result = call_combine_opencmiss_multiblock(
+            os.path.join(result_dir, opencmiss_solution_name),
+            sts.combined_opencmiss_solution_path,
+        )
+        if result.returncode:
+            st.error("Failed to combine OpenCMISS solution")
+            print(result.stderr)
 
+
+def visualize_opencmiss(
+    combined_opencmiss_solution_path,
+):
+    plot = st.toggle("Autoplot on select", value=False)
+    mesh = pv.read(combined_opencmiss_solution_path)
     scalars = list(mesh.cell_data.keys())
     metric = st.radio(
-        "Visualize:",
+        "Metric:",
         scalars,
+        horizontal=True,
     )
-    # metric = "Structure"
-
     if plot or st.button("Show"):
         if metric:
             with st.spinner("Viewing output..."):
                 result = call_visualize_opencmiss(
-                    result_path,
+                    combined_opencmiss_solution_path,
                     metric,
-                    initial_path,
                 )
                 if result.returncode:
                     st.error("Failed to visualize OpenCMISS results")
                     print(result.stderr)
+
+
+def implicit_domain_volumetric_mesh_opencmiss_solution(
+    opencmiss_solution_path,
+    iteration,
+    adapted_path,
+):
+    if st.button("Mesh"):
+        extract_domain = 3
+        result = call_implicit_domain_volumetric_mesh_generator(
+            initial_file,
+            adapted_file,
+            metric="implicit_distance",
+            hausd=1e0,
+            hgrad=1.3,
+            hmin=1e-2,
+            hmax=1e0,
+            extract_subdomain=extract_domain,
+            mem_max=16000,
+            refine_iterations=0,
+        )
+        if result.returncode:
+            return result, None
+
+        if extract_domain:
+            adapted_path = os.path.splitext(adapted_path)[0] + "_extracted.mesh"
+
+        return result, adapted_path
 
 
 def clear_session_state(item=None):

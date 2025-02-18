@@ -18,7 +18,9 @@ from src.app.app_functions import (
     manual_BC_selector,
     visualize_BCs,
     run_open_cmiss,
+    combine_opencmiss_solution,
     visualize_opencmiss,
+    implicit_domain_volumetric_mesh_opencmiss_solution,
     generate_volumetric_mesh,
     clear_output,
 )
@@ -97,7 +99,6 @@ def page_kinematics():
 
 
 def page_dynamics():
-
     st.header("Dynamics")
 
     if sts.moco_solution_dynamics_path is not None and os.path.exists(
@@ -114,15 +115,11 @@ def page_dynamics():
                 sts.moco_solution_dynamics_path,
             )
 
-    if sts.muscle_forces_path is not None and os.path.exists(
-        sts.muscle_forces_path
-    ):
+    if sts.muscle_forces_path is not None and os.path.exists(sts.muscle_forces_path):
         visual_dynamics(
-                sts.muscle_forces_path,
-                color_map=color_map,
+            sts.muscle_forces_path,
+            color_map=color_map,
         )
-
-
 
     else:
         st.write(
@@ -369,10 +366,14 @@ def page_FE():
 def page_viewFE():
     st.title("Bone Functional Adaptation")
 
-    visualize_opencmiss(
-        # "../BoneOptimisation/second",
+    combine_opencmiss_solution(
         "../BoneOptimisation/all",
     )
+
+    if sts.combined_opencmiss_solution_path and os.path.isfile(
+        sts.combined_opencmiss_solution_path
+    ):
+        visualize_opencmiss(sts.combined_opencmiss_solution_path)
 
 
 def page_output():
@@ -404,13 +405,14 @@ def page_output():
         st.subheader("Download files")
 
         for file_name in output_files:
-            with open(os.path.join(sts.output_path, file_name), "rb") as file:
-                file_data = file.read()
-                st.download_button(
-                    label=f"{file_name}",
-                    data=file_data,
-                    file_name=file_name,
-                )
+            st.write(file_name)
+            # with open(os.path.join(sts.output_path, file_name), "rb") as file:
+            #     file_data = file.read()
+            #     st.download_button(
+            #         label=f"{file_name}",
+            #         data=file_data,
+            #         file_name=file_name,
+            #     )
 
         st.subheader("Remove files", divider="red")
         for file_name in output_files:

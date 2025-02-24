@@ -130,39 +130,46 @@ def call_implicit_domain_volumetric_mesh_generator(
     refine_iterations=DEFAULT_MESH_ITERATIONS,
     debug=None,
 ):
+    print("-- Running implicit domain volumetric mesh generator...")
+    command = [
+        "conda",
+        "run",
+        "-n",
+        "envMSM_FE",
+        "python",
+        "src/uFE/implicit_domain_volumetric_mesh_generator.py",
+        "-i",
+        mesh_file,
+        "-o",
+        output_file,
+        "-m",
+        metric,
+        "-hausd",
+        f"{hausd}",
+        "-hgrad",
+        f"{hgrad}",
+        "-hmin",
+        f"{hmin}",
+        "-hmax",
+        f"{hmax}",
+        "-sd",
+        f"{extract_subdomain}",
+        "-mm",
+        f"{mem_max}",
+        "-iter",
+        f"{refine_iterations}",
+        # "-d",
+        "-v",
+    ]
+    if surf_file:
+        command.extend(
+            [
+                "-s",
+                surf_file,
+            ]
+        )
     result = subprocess.run(
-        [
-            "conda",
-            "run",
-            "-n",
-            "envMSM_FE",
-            "python",
-            "src/uFE/implicit_domain_volumetric_mesh_generator.py",
-            "-i",
-            mesh_file,
-            "-s",
-            surf_file,
-            "-o",
-            output_file,
-            "-m",
-            metric,
-            "-hausd",
-            f"{hausd}",
-            "-hgrad",
-            f"{hgrad}",
-            "-hmin",
-            f"{hmin}",
-            "-hmax",
-            f"{hmax}",
-            "-sd",
-            f"{extract_subdomain}",
-            "-mm",
-            f"{mem_max}",
-            "-iter",
-            f"{refine_iterations}",
-            # "-d",
-            "-v",
-        ],
+        command,
         capture_output=True,
         text=True,
     )
@@ -171,8 +178,8 @@ def call_implicit_domain_volumetric_mesh_generator(
 
 
 def call_assign_boundary_conditions_manually(
-    mesh_file,
-    output_file,
+    mesh_path,
+    output_base,
     surf_select=True,
     txt=False,
 ):
@@ -184,9 +191,9 @@ def call_assign_boundary_conditions_manually(
         "python",
         "src/uFE/assign_boundary_conditions_manually.py",
         "-i",
-        f"{mesh_file}",
+        f"{mesh_path}",
         "-o",
-        f"{output_file}",
+        f"{output_base}",
     ]
     if surf_select:
         command.extend(
@@ -216,9 +223,9 @@ def call_assign_boundary_conditions_manually(
 
 
 def call_bc_visualizer(
-    mesh_file,
-    dirichlet_file,
-    neumann_file,
+    mesh_path,
+    dirichlet_path,
+    neumann_path,
 ):
     command = [
         "conda",
@@ -228,23 +235,49 @@ def call_bc_visualizer(
         "python",
         "src/uFE/bc_visualizer.py",
         "-i",
-        f"{mesh_file}",
+        mesh_path,
     ]
-    if dirichlet_file:
+    if dirichlet_path:
         command.extend(
             [
                 "-d",
-                f"{dirichlet_file}",
+                dirichlet_path,
             ]
         )
-    if neumann_file:
+    if neumann_path:
         command.extend(
             [
                 "-n",
-                f"{neumann_file}",
+                neumann_path,
             ]
         )
 
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout)
+    return result
+
+
+def call_design_domain_generator(
+    mesh_path,
+    design_path
+):
+    command = [
+        "conda",
+        "run",
+        "-n",
+        "envMSM_FE",
+        "python",
+        "src/uFE/design_domain_generator.py",
+        "-i",
+        mesh_path,
+        "-o",
+        design_path,
+        # "-t"
+    ]
     result = subprocess.run(
         command,
         capture_output=True,
@@ -258,22 +291,26 @@ def call_open_cmiss(
     mesh_path,
     dirichlet_path,
     neumann_path,
+    design_path,
 ):
+    command = [
+        "conda",
+        "run",
+        "-n",
+        "envMSM_FE",
+        "python",
+        "src/uFE/opencmiss_linear_elasticity.py",
+        "-i",
+        mesh_path,
+        "-d",
+        dirichlet_path,
+        "-n",
+        neumann_path,
+    ]
+    if design_path:
+        command += ["-dd", design_path]
     result = subprocess.run(
-        [
-            "conda",
-            "run",
-            "-n",
-            "envMSM_FE",
-            "python",
-            "src/uFE/opencmiss_linear_elasticity.py",
-            "-i",
-            mesh_path,
-            "-d",
-            dirichlet_path,
-            "-n",
-            neumann_path,
-        ],
+        command,
         capture_output=True,
         text=True,
     )
@@ -309,7 +346,9 @@ def call_combine_opencmiss_multiblock(
 def call_visualize_opencmiss(
     mesh_path,
     metric,
-    initial_path=None,
+    clip=None,
+    thresh=None,
+    thresh_val=1.0,
 ):
     command = [
         "conda",
@@ -320,16 +359,13 @@ def call_visualize_opencmiss(
         "src/uFE/visualize_opencmiss.py",
         "-i",
         mesh_path,
-        "-im",
-        metric,
     ]
-    if initial_path:
-        command.extend(
-            [
-                "-c",
-                initial_path,
-            ]
-        )
+    if metric:
+        command += ["-im", metric]
+    if clip:
+        command += ["-c", clip]
+    if thresh:
+        command += ["-t", thresh, "-tv", str(thresh_val),]
     result = subprocess.run(
         command,
         capture_output=True,

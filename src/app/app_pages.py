@@ -17,8 +17,10 @@ from src.app.app_functions import (
     bone_muscle_extraction,
     manual_BC_selector,
     visualize_BCs,
+    generate_design_domain,
     run_open_cmiss,
     combine_opencmiss_solution,
+    setup_visualize_opencmiss,
     visualize_opencmiss,
     implicit_domain_volumetric_mesh_opencmiss_solution,
     generate_volumetric_mesh,
@@ -313,17 +315,12 @@ def page_BCs():
                 if st.button(f"Select BCs on {sts.boi}"):
                     manual_BC_selector(
                         sts.vol_path,
-                        os.path.join(
-                            sts.output_path,
-                            os.path.splitext(
-                                os.path.basename(sts.osim_path).replace("MSM", "uFE")
-                            )[0]
-                            + "_"
-                            + sts.boi,
-                        ),
                         surf_select,
                         False,  # Debug: True outputs human readable BC .txts
                     )
+                if st.button(f"Generate design domain for {sts.boi}"):
+                    generate_design_domain(sts.vol_path)
+
             else:
                 st.write(
                     "Generate a volumetric mesh under :rainbow[Volumetric meshing] \
@@ -360,6 +357,7 @@ def page_FE():
                     sts.vol_path,
                     sts.dirichlet_path,
                     sts.neumann_path,
+                    sts.design_path,
                 )
 
 
@@ -373,7 +371,26 @@ def page_viewFE():
     if sts.combined_opencmiss_solution_path and os.path.isfile(
         sts.combined_opencmiss_solution_path
     ):
-        visualize_opencmiss(sts.combined_opencmiss_solution_path)
+        setup_visualize_opencmiss(sts.combined_opencmiss_solution_path)
+
+    if sts.combined_opencmiss_solution_path and os.path.isfile(
+        sts.combined_opencmiss_solution_path
+    ):
+        if st.button("Adaptive remeshing"):
+            sts.adapted_opencmiss_solution_path = (
+                implicit_domain_volumetric_mesh_opencmiss_solution(
+                    sts.combined_opencmiss_solution_path,
+                )
+            )
+
+        if st.button("Show adapted mesh"):
+            visualize_opencmiss(
+                os.path.splitext(sts.combined_opencmiss_solution_path)[0]
+                + "_adapted.mesh",
+                clip='y',
+                thresh='medit:ref',
+                thresh_val=3,
+            )
 
 
 def page_output():

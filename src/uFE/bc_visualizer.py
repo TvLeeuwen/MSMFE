@@ -3,7 +3,7 @@
 """
 # Imports ---------------------------------------------------------------------
 import argparse
-import numpy as np
+import pandas as pd
 import pyvista as pv
 
 
@@ -70,13 +70,15 @@ def visualize_BCs(
     pl.add_axes(interactive=True)
 
     if dirichlet_path:
-        dirichlet_nodes = np.load(dirichlet_path)
-        print(" - Dirichlet vertex count:", len(dirichlet_nodes))
-        pl.add_mesh(mesh.points[dirichlet_nodes], color="blue")
+        df = pd.read_json(dirichlet_path, orient="records", lines=True)
+        # dirichlet_nodes = np.load(dirichlet_path)
+        print(" - Dirichlet vertex count:", len(df["dirichlet_nodes"]))
+        pl.add_mesh(mesh.points[df["dirichlet_nodes"]], color="blue")
     if neumann_path:
-        neumann_nodes = np.load(neumann_path)
-        print(" - Neumann vertex count:", len(neumann_nodes))
-        pl.add_mesh(mesh.points[neumann_nodes], color="red")
+        df2 = pd.read_json(neumann_path, orient="records", lines=True)
+        # neumann_nodes = np.load(neumann_path)
+        print(" - Neumann vertex count:", len(df2["neumann_nodes"]))
+        pl.add_mesh(mesh.points[df2["neumann_nodes"]], color="red")
     pl.show(auto_close=True)
 
 

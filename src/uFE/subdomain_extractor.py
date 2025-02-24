@@ -67,29 +67,29 @@ def parse_arguments():
 
 # Defs ------------------------------------------------------------------------
 def handle_args_none_ouput_file(
-    input_file: Path,
-    output_file: Path | None = None,
-) -> Path:
+    input_file: str,
+    output_file: str | None = None,
+) -> str:
     if output_file is None:
-        output_file = input_file.with_name(input_file.stem + "_extracted.mesh")
+        output_file = os.path.splitext(input_file)[0] + "_extracted.mesh"
 
     return output_file
 
 
 def run_mmg_extract(
-    input_file: Path,
-    output_file: Path,
+    input_file: str,
+    output_file: str,
     subdomain,
     debug,
 ) -> None:
-    call_str = [
+    command = [
         "mmg3d",
         "-in",
-        str(input_file),
+        input_file,
         "-sol",
         "0",
         "-out",
-        str(output_file),
+        output_file,
         "-noinsert",
         "-noswap",
         "-nomove",
@@ -97,26 +97,26 @@ def run_mmg_extract(
         str(subdomain),
     ]
     if debug:
-        call_str += ["-d"]
+        command += ["-d"]
 
-    print(call_str)
+    print(command)
 
-    subprocess.call(call_str)
+    subprocess.call(command)
 
 
 # Main ------------------------------------------------------------------------
 @timer
 def extract_subdomain(
-    input_file: Path,
-    output_file: Path | None = None,
+    input_file: str,
+    output_file: str | None = None,
     subdomain: int = 3,
     debug=False,
     visuals=False,
-) -> (Path, float):
+) -> str:
 
     print_section()
     print("-- Mesh extractor initiated, loading file:")
-    print(f" - {input_file.name}")
+    print(f" - {os.path.basename(input_file)}")
 
     output_file = handle_args_none_ouput_file(input_file, output_file)
 
@@ -129,7 +129,6 @@ def extract_subdomain(
         pl.add_mesh(
             extracted_mesh,
             color="white",
-
         )
         pl.add_axes(interactive=True)
         pl.show()
@@ -142,11 +141,9 @@ def extract_subdomain(
 if __name__ == "__main__":
     args = parse_arguments()
 
-    output_file = Path(args.output) if args.output else args.output
-
     extract_subdomain(
-        Path(args.input),
-        output_file,
+        args.input,
+        args.output,
         args.subdomain,
         args.debug,
         args.visuals,

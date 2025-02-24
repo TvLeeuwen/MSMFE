@@ -1,8 +1,8 @@
 """
 Visualize OpenCMISS results by calling `visualize_OpenCMISS_results()`
 @params
-:param `opencmiss_solution_path`: /Path/to/input/mesh.mesh
-:(optional) param `solution_metric`: color map scalar for the result mesh, metric choices below:
+:param `input_path`: /Path/to/input/mesh.mesh
+:(optional) param `input_metric`: color map scalar for the result mesh, metric choices below:
 :(optional) param `initial_path`: /Path/to/input/mesh.mesh
 :(optional) param `initial_metric`: color map scalar for the initial mesh, metric choices from:
 ::  default=None
@@ -17,8 +17,8 @@ Visualize OpenCMISS results by calling `visualize_OpenCMISS_results()`
 ### Imports --------------------------------------------------------------------
 import os
 import sys
+import meshio
 import argparse
-from pathlib import Path
 import pyvista as pv
 
 
@@ -49,23 +49,25 @@ def parse_arguments():
         "-im",
         "--imetric",
         help="Output metric to be visualized on the resulting mesh",
-        # type=str_lowercase,
-        # choices=metric_choices,
-        default="Structure",
+        default=None,
     )
     parser.add_argument(
         "-c",
-        "--compare",
-        type=str,
-        help="Path/to/file`.vtk` to be visualized in comparison to main input",
+        "--clip",
+        help="Clip the mesh in either 'x', 'y', or 'z'",
+        default=None,
     )
     parser.add_argument(
-        "-cm",
-        "--cmetric",
-        help="Output metric to be visualized on the comparing mesh",
-        # type=str_lowercase,
-        # choices=metric_choices,
+        "-t",
+        "--thresh",
+        help="Threshold visual cells based on a metric",
         default=None,
+    )
+    parser.add_argument(
+        "-tv",
+        "--thresh_val",
+        help="Threshold value",
+        default=1.0,
     )
 
     return parser.parse_args()
@@ -76,52 +78,52 @@ def str_lowercase(s: str) -> str:
 
 
 def visualize_OpenCMISS_results(
-    opencmiss_solution_path: str,
-    solution_metric: str = "Structure",
-    compare_path: str | None = None,
-    compare_metric: str | None = None,
+    input_path: str,
+    input_metric: str | None = None,
+    clip: str | None = None,
+    thresh: str | None = None,
+    thresh_val: float = 1.0,
 ) -> None:
     """
     Visualize OpenCMISS results
     @params
-    :param `opencmiss_solution_path`: /Path/to/input/mesh.mesh
-    :(optional) param `solution_metric`: color map scalar for the result mesh, metric choices below:
-    :(optional) param `initial_path`: /Path/to/input/mesh.mesh
-    :(optional) param `initial_metric`: color map scalar for the initial mesh, metric choices from:
-    ::  default=None
-    :: "Displacement"
-    :: "Stress"
-    :: "Strain"
-    :: "Elastic work"
+    :param `input_path`: /Path/to/input/mesh.mesh
+    :(optional) param `input_metric`: color map scalar for the result mesh, metric choices below:
+    :(optional) param `clip`: 'x', 'y', 'z'
+    :(optional) param `thresh`: 
+    :(optional) param `thresh_val`: 
     @returns: Void
     @outputs: Visual plot of modelled object with chosen metric colormap
     """
 
-    # -------------------------------------------------------------------------
+    print("-- Visualizing OpenCMISS mesh adaptation, loading file:")
+    print(f" - {os.path.basename(input_path)}")
 
-    mesh = pv.read(opencmiss_solution_path)
-    mesh = mesh.threshold(value=1, scalars="Structure", invert=False)
+    mesh = pv.read(input_path)
 
     # color = "bone"
     color = "bone_r"
     # color = "Pastel1"
 
     pl = pv.Plotter()
-    pl.add_text(os.path.basename(opencmiss_solution_path))
-    half_mesh = mesh.clip('y',
-                           crinkle=False,)
-    thresholded = half_mesh.threshold(
-        value=1,
-        scalars="Structure",
-        invert=False,
-    )
+    pl.add_text(os.path.basename(input_path))
+    if clip:
+        mesh = mesh.clip(clip, crinkle=False)
+    if thresh:
+        mesh = mesh.threshold(
+            value=thresh_val,
+            scalars=thresh,
+            invert=True,
+        )
     pl.add_mesh(
-        thresholded,
-        scalars=solution_metric,
+        mesh,
+        scalars=input_metric,
         cmap=color,
+        show_edges=True,
     )
     pl.view_xz()
     pl.add_axes(interactive=True)
+    # pl.scalar_bar.SetTitle("Implicit domain")
     pl.camera.up = (0, 0, -1)
 
     pl.show()
@@ -134,6 +136,7 @@ if __name__ == "__main__":
     visualize_OpenCMISS_results(
         args.input,
         args.imetric,
-        args.compare,
-        args.cmetric,
+        args.clip,
+        args.thresh,
+        float(args.thresh_val),
     )

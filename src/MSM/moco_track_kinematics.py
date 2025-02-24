@@ -204,34 +204,37 @@ def moco_track_states(
 
 
     # Extract solution muscle fiber data
-    muscle_dynamics_data = study.analyze(
-        solution,
-        [
-            r".*active_fiber_force",
-            r".*passive_fiber_force",
-            r".*fiber_length",
-            r".*fiber_velocity",
-            r".*fiber_active_power",
-            r".*fiber_passive_power",
-            r".*normalized_fiber_length",
-            r".*normalized_fiber_velocity",
-            r".*activation",
-            r".*excitation",
-            r".*active_force_length_multiplier",
-            r".*normalized_tendon_force",
-            r".*tendon_force",
-            r".*tendon_length",
-            r".*tendon_strain",
-            r".*tendon_velocity",
-            r".*tendon_power",
-        ],
-    )
+    try:
+        muscle_dynamics_data = study.analyze(
+            solution,
+            [
+                r".*active_fiber_force",
+                r".*passive_fiber_force",
+                r".*fiber_length",
+                r".*fiber_velocity",
+                r".*fiber_active_power",
+                r".*fiber_passive_power",
+                r".*normalized_fiber_length",
+                r".*normalized_fiber_velocity",
+                r".*activation",
+                r".*excitation",
+                r".*active_force_length_multiplier",
+                r".*normalized_tendon_force",
+                r".*tendon_force",
+                r".*tendon_length",
+                r".*tendon_strain",
+                r".*tendon_velocity",
+                r".*tendon_power",
+            ],
+        )
 
-    muscle_dynamics_file = output_file.stem + "_muscle_dynamics.sto"
-    osim.STOFileAdapter.write(
-        muscle_dynamics_data,
-        muscle_dynamics_file,
-    )
+        muscle_dynamics_file = output_file.stem + "_muscle_dynamics.sto"
+        osim.STOFileAdapter.write(
+            muscle_dynamics_data,
+            muscle_dynamics_file,
+        )
+    except Exception as error:
+        print("DYNAMICS ERROR:\n", error)
 
     return output_file, muscle_dynamics_file
 

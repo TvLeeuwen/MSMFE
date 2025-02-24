@@ -18,6 +18,7 @@ try:
     import meshio
     import argparse
     import numpy as np
+    import pandas as pd
 
     sys.path.append(
         r"~/OpenCMISS/install/x86_64_linux/intel-C2021.10-intel-F2021.10/ \
@@ -75,41 +76,49 @@ def parse_arguments():
         help="Path to Neumann boundary nodes file (.npy) ",
         default=None,
     )
+    parser.add_argument(
+        "-dd",
+        "--design",
+        type=str,
+        help="Path to design element nodes file (.npy) ",
+        default=None,
+    )
     return parser.parse_args()
 
 
 # Main ------------------------------------------------------------------------
 def calculate_linear_elasticity(
-    input_file,
-    output_file=None,
-    dirichlet_file=None,
-    neumann_file=None,
+    input_path,
+    output_path=None,
+    dirichlet_path=None,
+    neumann_path=None,
+    design_path=None,
 ) -> None:
     """
     Calculate linear elasticity using OpenCMISS
-    :param `input_file`: /Path/to/input/mesh`.mesh`
-    :(optional) param: `output_file`: /Path/to/output/mesh`.vtk`
-    :(optional) param: `neumann_file`: /Path/to/neumann/bc/file`.npy`
-    :(optional) param: `dirichlet_file`: /Path/to/dirichlet/bc/file`.npy`
+    :param `input_path`: /Path/to/input/mesh`.mesh`
+    :(optional) param: `output_path`: /Path/to/output/mesh`.vtk`
+    :(optional) param: `neumann_path`: /Path/to/neumann/bc/file`.npy`
+    :(optional) param: `dirichlet_path`: /Path/to/dirichlet/bc/file`.npy`
     @returns: void
     @outputs:
-    :file `output_file`.vtk: solution file for visualisation and analysis
-    :file `output_file`_displaced.vtk: solution file with displaced mesh
+    :path `output_file`.vtk: solution file for visualisation and analysis
+    :path `output_file`_displaced.vtk: solution file with displaced mesh
     """
     # -----------------------------------------------------------------------------------------------------------
     # IMPORT EXTERNAL MESH
     # -----------------------------------------------------------------------------------------------------------
 
-    # Set up defaults files
-    if output_file is None:
-        output_file = os.path.splitext(input_file)[0] + "_solution.vtk"
-    if dirichlet_file is None:
-        output_file = os.path.splitext(input_file)[0] + "_dirichlet_BC.npy"
-    if neumann_file is None:
-        output_file = os.path.splitext(input_file)[0] + "_neumann_BC.npy"
+    # Set up defaults paths
+    if output_path is None:
+        output_path = os.path.splitext(input_file)[0] + "_solution.vtk"
+    if dirichlet_path is None:
+        dirichlet_path = os.path.splitext(input_file)[0] + "_dirichlet_BC.npy"
+    if neumann_path is None:
+        neumann_path = os.path.splitext(input_file)[0] + "_neumann_BC.npy"
 
     # Import mesh data
-    mesh = meshio.read(input_file)
+    mesh = meshio.read(input_path)
 
     coords = mesh.points
     nodes = range(1, len(coords) + 1)
@@ -126,8 +135,15 @@ def calculate_linear_elasticity(
 
     # Import boundary node data
     try:
-        neumannNodes = np.load(neumann_file) + 1
-        dirichletNodes = np.load(dirichlet_file) + 1
+        df = pd.read_json(dirichlet_path, orient="records", lines=True)
+        dirichletNodes = df["dirichlet_nodes"] + 1
+
+        df = pd.read_json(neumann_path, orient="records", lines=True)
+        neumannNodes = df["dirichlet_nodes"] + 1
+
+        df = pd.read_json(design_path, orient="records", lines=True)
+        designNodes = df["dirichlet_nodes"] + 1
+
     except Exception as e:
         print(e)
     else:
@@ -135,6 +151,7 @@ def calculate_linear_elasticity(
             f"-- Boundary nodes loaded:\n - "
                 f"Dirichlet: {len(dirichletNodes)}, Neumann: {len(neumannNodes)}"
         )
+        print(designNodes)
 
     sys.exit()
 
@@ -930,4 +947,5 @@ if __name__ == "__main__":
         args.output,
         args.dirichlet,
         args.neumann,
+        args.design,
     )

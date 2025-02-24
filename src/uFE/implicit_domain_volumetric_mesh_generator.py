@@ -3,8 +3,8 @@ Generates .mesh and .sol file for MMG based zero level-set mesh adaptation
 """
 import os
 import sys
+import meshio
 import argparse
-import numpy as np
 import pyvista as pv
 import subprocess
 from pathlib import Path
@@ -51,6 +51,7 @@ def parse_arguments():
         "--surf",
         type=str,
         help="Path to surface mesh .ply file",
+        default=None,
     )
     parser.add_argument(
         "-m",
@@ -133,35 +134,29 @@ def parse_arguments():
 
 # Defs ------------------------------------------------------------------------
 def handle_args_none_output_file(
-    input_file: Path,
-    output_file: Path | None = None,
+    input_file: str,
+    output_file: str | None = None,
 ):
     if output_file is None:
-        output_file = input_file.with_name(
-            input_file.name.replace("initial", "adapted")
-        )
+        output_file = input_file.replace("initial", "adapted")
 
     return output_file
 
 
-def handle_iterative(input_file: Path, output_file: Path, iter: int):
+def handle_iterative(input_file: str, output_file: str, iter: int):
     if iter == 0:
         pass
     elif iter == 1:
-        output_file = output_file.with_name(
-            output_file.stem + f"_iteration_{iter}" + ".mesh"
-        )
+        output_file = os.path.splitext(output_file)[0] + f"_iteration_{iter}" + ".mesh"
     else:
         input_file = output_file
-        output_file = output_file.with_name(
-            output_file.name.replace(f"_iteration_{iter-1}", f"_iteration_{iter}")
-        )
+        output_file = output_file.replace(f"_iteration_{iter-1}", f"_iteration_{iter}")
 
     return input_file, output_file
 
 
 def generate_sol_file(input_file, signed_distances):
-    sol_file = input_file.with_name(input_file.name.replace(".mesh", ".sol"))
+    sol_file = os.path.splitext(input_file)[0] + ".sol"
 
     with open(sol_file, "w") as file:
         file.write("MeshVersionFormatted 2" + "\n")
@@ -173,7 +168,7 @@ def generate_sol_file(input_file, signed_distances):
             file.write(f"{distance} \n")
         file.write("End" + "\n")
 
-    print(f"-- Generating .sol file:\n - {sol_file.name}.")
+    print(f"-- Generating .sol file:\n - {os.path.basename(sol_file)}.")
 
     return sol_file
 
@@ -198,14 +193,14 @@ def run_mmg(
     else:
         print("-- Mesh adaptation initiated")
 
-    call_str = [
+    command = [
         "mmg3d",
         "-in",
-        str(input_file),
+        input_file,
         "-sol",
-        str(sol_file),
+        sol_file,
         "-out",
-        str(output_file),
+        output_file,
         "-ls",
         "0",
         "-m",
@@ -222,17 +217,37 @@ def run_mmg(
     ]
 
     if debug:
-        call_str += ["-d"]
+        command += ["-d"]
 
-    subprocess.call(call_str)
+    subprocess.call(command)
+
+
+def trim_unknown_keyword(
+    file,
+    keyword,
+):
+    with open(file, "r") as f:
+        lines = f.readlines()
+
+    with open(file, "w") as f:
+        skip = False
+        for line in lines:
+            if line.strip().startswith(keyword):
+                skip = True
+                continue
+            if skip and line.strip() == "":
+                skip = False
+                continue
+            if not skip:
+                f.write(line)
 
 
 # Main ------------------------------------------------------------------------
 @return_timer
 def generate_implicit_domain_volumetric_mesh(
-    input_file: Path,
-    surf_file: Path,
-    output_file: Path | None = None,
+    input_file: str,
+    surf_file: str | None = None,
+    output_file: str | None = None,
     metric: str = "implicit_distance",
     hausd: float = DEFAULT_HAUSD,
     hgrad: float = DEFAULT_HGRAD,
@@ -246,52 +261,54 @@ def generate_implicit_domain_volumetric_mesh(
 ) -> None:
     print_section()
     print("-- Initiating mesh adaptation, loading files:")
-    print(f" - {input_file.name}\n - {surf_file.name}")
+    print(f" - {os.path.basename(input_file)}")
+    if surf_file:
+        print(f" - {os.path.basename(surf_file)}")
+        surf = pv.read(surf_file)
 
     for iter in range(0, refine_iterations + 1):
         output_file = handle_args_none_output_file(input_file, output_file)
         input_file, output_file = handle_iterative(input_file, output_file, iter)
 
         mesh = pv.read(input_file)
-        surf = pv.read(surf_file)
 
         print_status(
             "-- Volumetric mesh loaded, mesh bounds: ",
             f"{[bound for bound in mesh.bounds]}",
         )
 
-        if visuals:
-            cells = mesh.cells.reshape(-1, 5)[:, 1:]
-            cell_center = mesh.points[cells].mean(1)
-            cutting_plane = 2
-            half = np.mean(
-                [surf.bounds[cutting_plane * 2], surf.bounds[(cutting_plane * 2) + 1]]
-            )
-            mask = cell_center[:, cutting_plane] < half
-            cell_ind = mask.nonzero()[0]
-
         if metric == "implicit_distance":
             print("-- Computing signed distances")
             mesh.compute_implicit_distance(surf, inplace=True)
-
+        else:
+            input_file = os.path.splitext(input_file)[0] + ".mesh"
+            meshio.write(
+                input_file,
+                meshio.read(input_file.replace(".mesh", ".vtu")),
+            )
+            print(f"-- Generating .mesh file:\n - {os.path.basename(input_file)}")
 
         if visuals:
-            subgrid = mesh.extract_cells(cell_ind)
-
+            half_mesh = mesh.clip(
+                "y",
+                crinkle=False,
+            )
             plotter = pv.Plotter()
             plotter.add_mesh(
-                subgrid,
+                half_mesh,
                 show_edges=True,
                 scalars=metric,
-                cmap="coolwarm",
-                clim=[-1, 1],
+                cmap="bone",
             )
             if metric == "implicit_distance":
                 plotter.add_mesh(surf, lighting=True, color="white", scalars=None)
 
             plotter.show()
 
-        signed_distances = mesh[metric]
+        print(mesh[metric])
+        signed_distances = mesh[metric] * -1
+        # signed_distances = mesh[metric]
+        print(signed_distances)
 
         sol_file = generate_sol_file(input_file, signed_distances)
 
@@ -309,13 +326,18 @@ def generate_implicit_domain_volumetric_mesh(
             debug=debug,
         )
 
-    if extract_domain:
-        extract_subdomain(
+        trim_unknown_keyword(
             output_file,
-            subdomain=extract_domain,
-            debug=debug,
-            visuals=visuals,
+            "RequiredEdges",
         )
+
+    # if extract_domain:
+    #     extract_subdomain(
+    #         output_file,
+    #         subdomain=extract_domain,
+    #         debug=debug,
+    #         visuals=visuals,
+    #     )
 
     print("-- Volumetric meshing complete, total time elapsed:")
 
@@ -323,12 +345,10 @@ def generate_implicit_domain_volumetric_mesh(
 if __name__ == "__main__":
     args = parse_arguments()
 
-    output_file = Path(args.output) if args.output else args.output
-
     generate_implicit_domain_volumetric_mesh(
-        Path(args.input),
-        Path(args.surf),
-        output_file,
+        args.input,
+        args.surf,
+        args.output,
         args.metric,
         args.hausd,
         args.hgrad,

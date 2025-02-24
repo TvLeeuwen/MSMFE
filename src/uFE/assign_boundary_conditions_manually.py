@@ -4,28 +4,26 @@ Select the location of both Dirichlet and Neumann boundary conditions manually b
 :param `mesh_path`: /Path/to/input/mesh.mesh
 :(optional) param `surf_select`: bool, allows for selection of surface nodes only when True.
 :: Only when supported by mesh type, i.e. mmg level-set generated .mesh. `Default=False`.
-:(optional) param `txt`: bool, allows for the output of human readible txt files.
 @output:
 :file `input_file_dirichlet_BC.npy` list of selected nodes where displacement is constrained
 :file `input_file_neumann_BC.npy` list of selected nodes where force is applied
-:(optional) file `input_file_dirichlet_BC.txt` list of selected nodes where displacement is constrained
-:(optional) file `input_file_neumann_BC.txt` list of selected nodes where force is applied
 """
 
-### Imports --------------------------------------------------------------------
+# Imports ---------------------------------------------------------------------
 import os
 import sys
 import argparse
-from pathlib import Path
-import pyvista as pv
 import numpy as np
+import pandas as pd
+import pyvista as pv
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[2]))
 from src.uFE.utils.formatting import timer, print_section
 from src.uFE.bc_visualizer import visualize_BCs
 
 
-### Defs -----------------------------------------------------------------------
+# Defs ------------------------------------------------------------------------
 def parse_arguments():
     """
     Parse CLI arguments
@@ -60,12 +58,6 @@ def parse_arguments():
         "--surface",
         action="store_true",
         help="Enable to select surface nodes only",
-    )
-    parser.add_argument(
-        "-t",
-        "--txt",
-        action="store_true",
-        help="Enable human readable output (.txt)",
     )
 
     return parser.parse_args()
@@ -139,7 +131,6 @@ def set_bcs(
     mesh_path,
     output_path,
     surf_select,
-    txt,
 ):
     mesh = pv.read(mesh_path)
 
@@ -152,7 +143,6 @@ def set_bcs(
         output_path,
         dirichlet_selection,
         neumann_selection,
-        txt,
     )
 
     return dirichlet_path, neumann_path
@@ -162,45 +152,38 @@ def write_output(
     output_base,
     dirichlet_selection,
     neumann_selection=None,
-    txt=False,
 ):
     dirichlet_path, neumann_path = None, None
-    if dirichlet_selection:
-        dirichlet_path = output_base + "_manual_dirichlet_BC.npy"
-        if neumann_selection:
-            neumann_path = output_base + "_manual_neumann_BC.npy"
-            np.save(
-                neumann_path,
-                neumann_selection.point_data["vtkOriginalPointIds"],
-            )
-            if txt:
-                np.savetxt(
-                    os.path.splitext(neumann_path)[0] + ".txt",
-                    neumann_selection.point_data["vtkOriginalPointIds"],
-                    delimiter=",",
-                )
 
-        np.save(
-            dirichlet_path,
-            dirichlet_selection.point_data["vtkOriginalPointIds"],
+
+
+    if dirichlet_selection:
+        dirichlet_path = output_base + "_manual_dirichlet_BC.json"
+        df = pd.DataFrame(
+            0,
+            index=range(len(dirichlet_selection.points)),
+            columns=["dirichlet_nodes", "dirichlet_value"],
         )
-        if txt:
-            np.savetxt(
-                os.path.splitext(dirichlet_path)[0] + ".txt",
-                dirichlet_selection.point_data["vtkOriginalPointIds"],
-                delimiter=",",
+        df["dirichlet_nodes"] = dirichlet_selection.point_data["vtkOriginalPointIds"]
+
+        if neumann_selection:
+            neumann_path = output_base + "_manual_neumann_BC.json"
+            df2 = pd.DataFrame(
+                0,
+                index=range(len(neumann_selection.points)),
+                columns=["neumann_nodes", "neumann_x", "neumann_y", "neumann_z"],
             )
+            df2["neumann_nodes"] = neumann_selection.point_data["vtkOriginalPointIds"]
+            df2["neumann_y"] = -1
+
+            pd.DataFrame(df2).to_json(neumann_path, orient="records", lines=True)
+
+        pd.DataFrame(df).to_json(dirichlet_path, orient="records", lines=True)
+
         print(f"-- Writing files:")
         print(f" - {dirichlet_path}\n - {neumann_path}") if neumann_path else print(
             f" - {dirichlet_path}"
         )
-        if txt:
-            print(
-                f" - {os.path.splitext(dirichlet_path)[0] + '.txt'}\
-                \n - {os.path.splitext(neumann_path)[0] + '.txt'}"
-            ) if neumann_path else print(
-                f" - {os.path.splitext(dirichlet_path)[0] + '.txt'}"
-            )
 
     return dirichlet_path, neumann_path
 
@@ -210,7 +193,6 @@ def assign_bcs_manually(
     mesh_path,
     output_base,
     surf_select=False,
-    txt=False,
 ):
     """
     Select the location of both Dirichlet and Neumann boundary conditions manually
@@ -218,26 +200,22 @@ def assign_bcs_manually(
     :param `mesh_path`: /Path/to/input/mesh.mesh
     :(optional) param `surf_select`: bool, allows for selection of surface nodes only when True.
     :: Only when supported by mesh type, i.e. mmg level-set generated .mesh. `Default=False`.
-    :(optional) param `txt`: bool, allows for the output of human readible txt files.
     @returns: void
     @outputs:
     :file `input_file_dirichlet_BC.npy` list of selected nodes where displacement is constrained
     :file `input_file_neumann_BC.npy` list of selected nodes where force is applied
-    :(optional) file `input_file_dirichlet_BC.txt` list of selected nodes where displacement is constrained
-    :(optional) file `input_file_neumann_BC.txt` list of selected nodes where force is applied
     """
     print_section()
 
     print(
         f"-- Manual boundary condition picker initiated - loading file:\n - {mesh_path}"
     )
+    print(output_base)
 
-    print(txt)
     dirichlet_path, neumann_path = set_bcs(
         mesh_path,
         output_base,
         surf_select,
-        txt,
     )
 
     visualize_BCs(mesh_path, dirichlet_path, neumann_path)
@@ -250,5 +228,4 @@ if __name__ == "__main__":
         args.input,
         args.output,
         args.surface,
-        args.txt,
     )

@@ -2,11 +2,10 @@
 """
 # Imports ---------------------------------------------------------------------
 import os
-import sys
 import glob
+import meshio
 import argparse
 import pyvista as pv
-import visualize_opencmiss
 from utils.formatting import return_timer, print_section
 
 
@@ -73,7 +72,10 @@ def combine_OpenCMISS_blocks(
     print(f"-- Mesh combined, total number of cells: {mesh.n_cells}")
 
     mesh.save(combined_solution_path, binary=False)
-    print(f" - Writing files:\n - {combined_solution_path}\n - time elapsed:")
+    print(
+        f" - Writing files:\n - {combined_solution_path}\n"
+        " - time elapse:"
+    )
 
     if visuals:
         pl = pv.Plotter()

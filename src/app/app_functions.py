@@ -1,6 +1,7 @@
 # Imports ---------------------------------------------------------------------
 import os
 import shutil
+from numpy import half
 import pandas as pd
 import pyvista as pv
 import streamlit as st
@@ -20,6 +21,7 @@ from src.app.app_FE_calls import (
     call_align_moment_of_inertia,
     call_implicit_domain_volumetric_mesh_generator,
     call_assign_boundary_conditions_manually,
+    call_design_domain_generator,
     call_bc_visualizer,
     call_open_cmiss,
     call_combine_opencmiss_multiblock,
@@ -228,8 +230,7 @@ def generate_volumetric_mesh(
 
 
 def manual_BC_selector(
-    vol_path,
-    output_base,
+    mesh_path,
     surf_select,
     txt,
 ):
@@ -248,15 +249,17 @@ def manual_BC_selector(
             os.unlink(sts.neumann_path)
 
         result, dirichlet, neumann = call_assign_boundary_conditions_manually(
-            vol_path,
-            output_base,
+            mesh_path,
+            os.path.splitext(mesh_path)[0],
             surf_select,
             txt,
         )
         if dirichlet:
-            sts.dirichlet_path = output_base + "_manual_dirichlet_BC.npy"
+            sts.dirichlet_path = (
+                os.path.splitext(mesh_path)[0] + "_manual_dirichlet_BC.json"
+            )
         if neumann:
-            sts.neumann_path = output_base + "_manual_neumann_BC.npy"
+            sts.neumann_path = os.path.splitext(mesh_path)[0] + "_manual_neumann_BC.json"
 
         if not os.path.isfile(sts.dirichlet_path):
             st.warning("Warning: No BCs were selected")
@@ -265,11 +268,23 @@ def manual_BC_selector(
             st.error("Failed to select boundary conditions")
             print(result.stderr)
 
+        generate_design_domain(mesh_path)
+
+
+def generate_design_domain(
+    mesh_path,
+):
+    sts.design_path = os.path.splitext(mesh_path)[0] + "_design_domain.json"
+    result = call_design_domain_generator(mesh_path, sts.design_path)
+    if result.returncode:
+        st.error("Failed to generated design domain")
+        print(result.stderr)
+
 
 def visualize_BCs(
-    mesh_file,
+    mesh_path,
     dirichlet_path,
-    neumann_path,
+    neumann_path=None,
 ):
     with st.spinner("Showing boundary conditions..."):
         dirichlet_file = dirichlet_path if os.path.isfile(dirichlet_path) else None
@@ -282,7 +297,7 @@ def visualize_BCs(
             st.warning("Warning: No BCs were selected")
 
         result = call_bc_visualizer(
-            mesh_file,
+            mesh_path,
             dirichlet_file,
             neumann_file,
         )
@@ -295,12 +310,14 @@ def run_open_cmiss(
     mesh_path,
     dirichlet_path,
     neumann_path,
+    design_path,
 ):
     with st.spinner("Running Finite Element Analysis..."):
         result = call_open_cmiss(
             mesh_path,
             dirichlet_path,
             neumann_path,
+            design_path,
         )
         if result.returncode:
             st.error("Failed run OpenCMISS")
@@ -327,19 +344,23 @@ def combine_opencmiss_solution(
     )
 
     if st.button("Combine"):
-        result = call_combine_opencmiss_multiblock(
-            os.path.join(result_dir, opencmiss_solution_name),
-            sts.combined_opencmiss_solution_path,
-        )
-        if result.returncode:
-            st.error("Failed to combine OpenCMISS solution")
-            print(result.stderr)
+        with st.spinner("Combining OpenCMISS solution mesh..."):
+            result = call_combine_opencmiss_multiblock(
+                os.path.join(result_dir, opencmiss_solution_name),
+                sts.combined_opencmiss_solution_path,
+            )
+            if result.returncode:
+                st.error("Failed to combine OpenCMISS solution")
+                print(result.stderr)
+            else:
+                st.success("OpenCMISS solution succesfully combined!")
 
 
-def visualize_opencmiss(
+def setup_visualize_opencmiss(
     combined_opencmiss_solution_path,
+    clip="y",
+    thresh="Structure",
 ):
-    plot = st.toggle("Autoplot on select", value=False)
     mesh = pv.read(combined_opencmiss_solution_path)
     scalars = list(mesh.cell_data.keys())
     metric = st.radio(
@@ -347,29 +368,52 @@ def visualize_opencmiss(
         scalars,
         horizontal=True,
     )
-    if plot or st.button("Show"):
-        if metric:
-            with st.spinner("Viewing output..."):
-                result = call_visualize_opencmiss(
-                    combined_opencmiss_solution_path,
-                    metric,
-                )
-                if result.returncode:
-                    st.error("Failed to visualize OpenCMISS results")
-                    print(result.stderr)
+    if st.button("Show combined mesh"):
+        with st.spinner(
+            f"Showing {os.path.basename(combined_opencmiss_solution_path)}..."
+        ):
+            visualize_opencmiss(
+                combined_opencmiss_solution_path,
+                metric,
+                clip,
+                thresh,
+            )
+
+
+def visualize_opencmiss(
+    solution_path: str,
+    metric: str | None = None,
+    clip: str | None = None,
+    thresh: str | None = None,
+    thresh_val: float = 1.0,
+):
+    result = call_visualize_opencmiss(
+        solution_path,
+        metric,
+        clip,
+        thresh,
+        thresh_val,
+    )
+    if result.returncode:
+        st.error("Failed to visualize OpenCMISS results")
+        print(result.stderr)
 
 
 def implicit_domain_volumetric_mesh_opencmiss_solution(
     opencmiss_solution_path,
-    iteration,
-    adapted_path,
 ):
-    if st.button("Mesh"):
+    with st.spinner(
+        f"Adaptive remeshing of {os.path.basename(opencmiss_solution_path)}"
+    ):
         extract_domain = 3
+        opencmiss_adapted_solution_path = (
+            os.path.splitext(opencmiss_solution_path)[0] + "_adapted.mesh"
+        )
         result = call_implicit_domain_volumetric_mesh_generator(
-            initial_file,
-            adapted_file,
-            metric="implicit_distance",
+            opencmiss_solution_path,
+            None,
+            opencmiss_adapted_solution_path,
+            metric="Phi",
             hausd=1e0,
             hgrad=1.3,
             hmin=1e-2,
@@ -378,13 +422,17 @@ def implicit_domain_volumetric_mesh_opencmiss_solution(
             mem_max=16000,
             refine_iterations=0,
         )
-        if result.returncode:
-            return result, None
 
         if extract_domain:
-            adapted_path = os.path.splitext(adapted_path)[0] + "_extracted.mesh"
+            opencmiss_adapted_solution_path = (
+                os.path.splitext(opencmiss_adapted_solution_path)[0] + "_extracted.mesh"
+            )
 
-        return result, adapted_path
+        if result.returncode:
+            st.error("Failed adaptive remeshing of OpenCMISS solution mesh")
+            print(result.stderr)
+
+        return opencmiss_adapted_solution_path
 
 
 def clear_session_state(item=None):

@@ -152,6 +152,7 @@ def write_to_output(file, output_dir, tag):
 
 
 def osim_uploader():
+    # TODO: delete old .osim before uploading new
     osim_ref = st.file_uploader(
         "Drag and drop OR select .osim model here",
         type=["osim"],

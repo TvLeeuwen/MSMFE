@@ -154,14 +154,14 @@ def page_boi():
                 "volumetric.mesh": "vol_path",
                 "extracted.mesh": "vol_path",
                 "dirichlet": "dirichlet_path",
-                "neumann.npy": "neumann_path",
+                "neumann": "neumann_path",
+                "design": "design_path",
             }
             for dirpath, _, files in os.walk(sts.output_path):
                 for key, attr in file_mapping.items():
                     for file in files:
                         if sts.boi in file:
                             if key in file:
-                                print(file)
                                 setattr(sts, attr, os.path.join(dirpath, file))
                                 break
 

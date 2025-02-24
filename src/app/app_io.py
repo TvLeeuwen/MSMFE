@@ -71,43 +71,6 @@ def setup_paths():
             "muscle_forces.json",
         )
 
-    if "force_origins_path" not in sts or sts.force_origins_path is None:
-        sts.force_origins_path = find_file_in_dir(
-            sts.output_path,
-            "muscle_origins.json",
-        )
-
-    if "force_vectors_path" not in sts or sts.force_vectors_path is None:
-        sts.force_vectors_path = find_file_in_dir(
-            sts.output_path,
-            "muscle_vectors.json",
-        )
-
-    if "gif_path" not in sts or sts.gif_path is None:
-        sts.gif_path = find_file_in_dir(
-            sts.output_path,
-            "vectors.gif",
-        )
-
-    if "vol_path" not in sts or sts.vol_path is None:
-        sts.vol_path = find_file_in_dir(
-            sts.output_path,
-            "extracted.mesh",
-        )
-
-    if "dirichlet_path" not in sts or sts.dirichlet_path is None:
-        sts.dirichlet_path = find_file_in_dir(
-            sts.output_path,
-            "dirichlet_BC.npy",
-        )
-
-    if "neumann_path" not in sts or sts.neumann_path is None:
-        sts.neumann_path = find_file_in_dir(
-            sts.output_path,
-            "neumann_BC.npy",
-        )
-
-
     # Params ------------------------------------------------------------------
     if "boi" not in sts:
         sts.boi = None
@@ -137,7 +100,7 @@ def find_file_in_dir(directory, string):
                     osim_file = os.path.join(root, file)
                     return osim_file if osim_file else None
             else:
-                if string in file.lower():
+                if string in file:
                     return os.path.join(directory, file)
 
 

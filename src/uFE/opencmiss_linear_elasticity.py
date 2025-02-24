@@ -98,12 +98,12 @@ def calculate_linear_elasticity(
     Calculate linear elasticity using OpenCMISS
     :param `input_path`: /Path/to/input/mesh`.mesh`
     :(optional) param: `output_path`: /Path/to/output/mesh`.vtk`
-    :(optional) param: `neumann_path`: /Path/to/neumann/bc/file`.npy`
-    :(optional) param: `dirichlet_path`: /Path/to/dirichlet/bc/file`.npy`
+    :(optional) param: `neumann_path`: /Path/to/neumann/bc/path`.npy`
+    :(optional) param: `dirichlet_path`: /Path/to/dirichlet/bc/path`.npy`
     @returns: void
     @outputs:
-    :path `output_file`.vtk: solution file for visualisation and analysis
-    :path `output_file`_displaced.vtk: solution file with displaced mesh
+    :path `output_path`.vtk: solution file for visualisation and analysis
+    :path `output_path`_displaced.vtk: solution file with displaced mesh
     """
     # -----------------------------------------------------------------------------------------------------------
     # IMPORT EXTERNAL MESH
@@ -111,11 +111,11 @@ def calculate_linear_elasticity(
 
     # Set up defaults paths
     if output_path is None:
-        output_path = os.path.splitext(input_file)[0] + "_solution.vtk"
+        output_path = os.path.splitext(input_path)[0] + "_solution.vtk"
     if dirichlet_path is None:
-        dirichlet_path = os.path.splitext(input_file)[0] + "_dirichlet_BC.npy"
+        dirichlet_path = os.path.splitext(input_path)[0] + "_dirichlet_BC.npy"
     if neumann_path is None:
-        neumann_path = os.path.splitext(input_file)[0] + "_neumann_BC.npy"
+        neumann_path = os.path.splitext(input_path)[0] + "_neumann_BC.npy"
 
     # Import mesh data
     mesh = meshio.read(input_path)
@@ -138,11 +138,11 @@ def calculate_linear_elasticity(
         df = pd.read_json(dirichlet_path, orient="records", lines=True)
         dirichletNodes = df["dirichlet_nodes"] + 1
 
-        df = pd.read_json(neumann_path, orient="records", lines=True)
-        neumannNodes = df["dirichlet_nodes"] + 1
+        df2 = pd.read_json(neumann_path, orient="records", lines=True)
+        neumannNodes = df2["neumann_nodes"] + 1
 
-        df = pd.read_json(design_path, orient="records", lines=True)
-        designNodes = df["dirichlet_nodes"] + 1
+        df3 = pd.read_json(design_path, orient="records", lines=True)
+        designNodes = df3["design_nodes"] + 1
 
     except Exception as e:
         print(e)
@@ -151,7 +151,6 @@ def calculate_linear_elasticity(
             f"-- Boundary nodes loaded:\n - "
                 f"Dirichlet: {len(dirichletNodes)}, Neumann: {len(neumannNodes)}"
         )
-        print(designNodes)
 
     sys.exit()
 
